@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #ffffff;
+  color: #1e293b;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: 8px;
+  margin: 4px 8px !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background: #2563eb !important;
+  border-radius: 8px;
+  margin: 4px 8px !important;
+}
+
+.ant-menu-dark .ant-menu-item {
+  margin: 4px 8px !important;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-menu-item-selected {
+  background: linear-gradient(to right, #3b82f6, #8b5cf6) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: 8px;
+  margin: 4px 8px !important;
+}
+
+.ant-menu-item:hover {
+  background: linear-gradient(to right, #dbeafe, #e9d5ff) !important;
+  border-radius: 8px;
+  margin: 4px 8px !important;
+}
+
+.ant-menu-item {
+  margin: 4px 8px !important;
+  border-radius: 8px;
+}
+
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  background: #ffffff !important;
+  transition: all 0.3s ease;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.ant-table {
+  border-radius: 8px;
+}
+
+.ant-table-thead > tr > th {
+  background: #f9fafb !important;
+  font-weight: 600;
+  color: #1e293b !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #f9fafb !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid #e5e7eb !important;
+  background: #ffffff !important;
+}
+
+.ant-btn-primary {
+  background: #3b82f6 !important;
+  border: none !important;
+}
+
+.ant-btn-primary:hover {
+  background: #2563eb !important;
+}
+
+.ant-layout {
+  background: transparent;
+}
+
+.ant-layout-sider {
+  background: #1e3a8a !important;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.ant-layout-header {
+  background: #ffffff !important;
+  padding: 0 !important;
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  left: 256px !important;
+  z-index: 10 !important;
+  height: 64px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.ant-layout-content {
+  background: #ffffff;
+}
+
+.ant-layout-footer {
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Project Title in Header - Override all other styles */
+.project-title {
+  font-size: 2.5rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  color: #1e293b !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+}
