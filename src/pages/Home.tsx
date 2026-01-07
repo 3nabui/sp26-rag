@@ -118,7 +118,7 @@ export default function Home() {
             <Link to="/login">
               <Button variant="ghost">Đăng Nhập</Button>
             </Link>
-            <Link to="/login">
+            <Link to="/register">
               <Button className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white">
                 Bắt Đầu Miễn Phí
               </Button>
@@ -159,7 +159,7 @@ export default function Home() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/login">
+              <Link to="/register">
                 <Button size="lg" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-8 py-6 text-lg">
                   Bắt Đầu Ngay
                   <ArrowRight className="w-5 h-5 ml-2" />
@@ -334,7 +334,7 @@ export default function Home() {
                 Bắt đầu miễn phí ngay hôm nay và khám phá sức mạnh của AI trong việc phân tích truyện.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link to="/login">
+                <Link to="/register">
                   <Button size="lg" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-8">
                     Đăng Ký Miễn Phí
                     <ArrowRight className="w-5 h-5 ml-2" />
