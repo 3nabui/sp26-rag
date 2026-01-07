@@ -7,6 +7,8 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { AuthorDashboard, UploadPage, AnalysisPage, ChatbotPage } from "./pages/author";
+import StaffReviewPage from "./pages/staff/Review";
+import { AdminDashboard, AdminConfig, AdminUsers } from "./pages/admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,14 @@ const App = () => (
           <Route path="/author/upload" element={<UploadPage />} />
           <Route path="/author/analysis" element={<AnalysisPage />} />
           <Route path="/author/chatbot" element={<ChatbotPage />} />
+
+          {/* Staff routes */}
+          <Route path="/staff/review" element={<StaffReviewPage />} />
+
+          {/* Admin routes */}
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/config" element={<AdminConfig />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
