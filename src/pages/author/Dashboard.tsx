@@ -102,7 +102,7 @@ export default function AuthorDashboard() {
               <div className="relative z-10 flex items-center justify-between">
                 <div>
                   <h2 className="font-serif text-2xl font-bold text-foreground mb-2">
-                    Chào buổi sáng, Nguyễn An! 👋
+                    Chào buổi sáng, Võ Hào! 👋
                   </h2>
                   <p className="text-muted-foreground max-w-lg">
                     Bạn có 2 bản thảo mới cần xem xét và 1 phân tích đã hoàn thành. 

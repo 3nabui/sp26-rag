@@ -62,7 +62,7 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
                     NA
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">Nguyễn An</span>
+                <span className="text-sm font-medium">Võ Hào</span>
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
