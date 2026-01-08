@@ -65,7 +65,7 @@ const testimonials = [
   {
     name: 'Nguyễn Minh Anh',
     role: 'Tác giả tiểu thuyết',
-    content: 'RAG Story Analysis đã giúp tôi phát hiện những điểm yếu trong cấu trúc truyện mà tôi không nhận ra. Thật sự ấn tượng!',
+    content: 'StoryNest đã giúp tôi phát hiện những điểm yếu trong cấu trúc truyện mà tôi không nhận ra. Thật sự ấn tượng!',
     avatar: 'MA'
   },
   {
@@ -96,10 +96,12 @@ export default function Home() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-foreground">RAG Story</span>
+            <img 
+              src="/logo-storynest.png" 
+              alt="StoryNest Logo" 
+              className="w-10 h-10 object-contain"
+            />
+            <span className="text-xl font-bold text-foreground">StoryNest</span>
           </Link>
           
           <div className="hidden md:flex items-center gap-8">
@@ -280,7 +282,7 @@ export default function Home() {
               Đánh Giá Từ Tác Giả
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Hàng nghìn tác giả đã tin dùng RAG Story Analysis
+              Hàng nghìn tác giả đã tin dùng StoryNest
             </p>
           </div>
 
@@ -365,10 +367,12 @@ export default function Home() {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold text-foreground">RAG Story Analysis</span>
+              <img 
+                src="/logo-storynest.png" 
+                alt="StoryNest Logo" 
+                className="w-8 h-8 object-contain"
+              />
+              <span className="font-bold text-foreground">StoryNest</span>
             </div>
             <div className="flex items-center gap-8 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Điều khoản</a>
@@ -376,7 +380,7 @@ export default function Home() {
               <a href="#" className="hover:text-foreground transition-colors">Liên hệ</a>
             </div>
             <div className="text-sm text-muted-foreground">
-              © 2024 RAG Story Analysis. All rights reserved.
+              © 2024 StoryNest. All rights reserved.
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Upload as UploadIcon, 
@@ -9,7 +9,11 @@ import {
   AlertCircle,
   Trash2,
   Eye,
-  BarChart3
+  BarChart3,
+  Edit3,
+  Save,
+  FilePlus,
+  FolderOpen
 } from 'lucide-react';
 import { DefaultLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -68,9 +72,25 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+interface SavedDraft {
+  id: string;
+  name: string;
+  content: string;
+  updatedAt: string;
+}
+
+const STORAGE_KEY = 'storynest_drafts';
+
 export default function UploadPage() {
+  const [mode, setMode] = useState<'upload' | 'editor'>('upload');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+  
+  // Editor states
+  const [editorContent, setEditorContent] = useState('');
+  const [currentDraftName, setCurrentDraftName] = useState('');
+  const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
+  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -131,6 +151,86 @@ export default function UploadPage() {
     setUploadingFiles(prev => prev.filter(f => f.id !== id));
   };
 
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const drafts = JSON.parse(saved);
+        setSavedDrafts(drafts);
+      } catch (error) {
+        console.error('Error loading drafts:', error);
+      }
+    }
+  }, []);
+
+  const saveDraft = () => {
+    if (!currentDraftName.trim()) {
+      alert('Vui lòng nhập tên file');
+      return;
+    }
+
+    const draft: SavedDraft = {
+      id: selectedDraftId || Date.now().toString(),
+      name: currentDraftName.trim(),
+      content: editorContent,
+      updatedAt: new Date().toISOString()
+    };
+
+    let updatedDrafts: SavedDraft[];
+    if (selectedDraftId) {
+      updatedDrafts = savedDrafts.map(d => d.id === selectedDraftId ? draft : d);
+    } else {
+      const existingDraft = savedDrafts.find(d => d.name === draft.name);
+      if (existingDraft) {
+        if (!confirm(`File "${draft.name}" đã tồn tại. Bạn có muốn ghi đè không?`)) {
+          return;
+        }
+        updatedDrafts = savedDrafts.map(d => d.id === existingDraft.id ? draft : d);
+        setSelectedDraftId(existingDraft.id);
+      } else {
+        updatedDrafts = [...savedDrafts, draft];
+        setSelectedDraftId(draft.id);
+      }
+    }
+
+    setSavedDrafts(updatedDrafts);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDrafts));
+    alert('Đã lưu thành công!');
+  };
+
+  const loadDraft = (draftId: string) => {
+    const draft = savedDrafts.find(d => d.id === draftId);
+    if (draft) {
+      setEditorContent(draft.content);
+      setCurrentDraftName(draft.name);
+      setSelectedDraftId(draftId);
+    }
+  };
+
+  const deleteDraft = (draftId: string) => {
+    const draft = savedDrafts.find(d => d.id === draftId);
+    if (draft && confirm(`Bạn có chắc muốn xóa "${draft.name}"?`)) {
+      const updatedDrafts = savedDrafts.filter(d => d.id !== draftId);
+      setSavedDrafts(updatedDrafts);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedDrafts));
+      
+      if (selectedDraftId === draftId) {
+        setEditorContent('');
+        setCurrentDraftName('');
+        setSelectedDraftId(null);
+      }
+    }
+  };
+  
+  const createNewDraft = () => {
+    if (editorContent.trim() && !confirm('Bạn có muốn tạo file mới? Nội dung hiện tại sẽ bị xóa.')) {
+      return;
+    }
+    setEditorContent('');
+    setCurrentDraftName('');
+    setSelectedDraftId(null);
+  };
+
   return (
     <DefaultLayout title="Upload Bản Thảo" role="author">
       <motion.div
@@ -138,7 +238,33 @@ export default function UploadPage() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6"
       >
-        {/* Upload Zone */}
+        {/* Mode Selection Tabs */}
+        <Card variant="elevated">
+          <CardContent className="pt-6">
+            <div className="flex gap-2">
+              <Button
+                variant={mode === 'upload' ? 'default' : 'outline'}
+                onClick={() => setMode('upload')}
+                className="flex-1"
+              >
+                <UploadIcon className="w-4 h-4 mr-2" />
+                Upload File
+              </Button>
+              <Button
+                variant={mode === 'editor' ? 'default' : 'outline'}
+                onClick={() => setMode('editor')}
+                className="flex-1"
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                Soạn thảo trực tiếp
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {mode === 'upload' ? (
+          <>
+            {/* Upload Zone */}
         <Card variant="elevated">
           <CardHeader>
             <CardTitle>Upload bản thảo mới</CardTitle>
@@ -303,6 +429,140 @@ export default function UploadPage() {
             </div>
           </CardContent>
         </Card>
+          </>
+        ) : (
+          <>
+            {/* Editor Mode */}
+            <Card variant="elevated">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Soạn thảo truyện</CardTitle>
+                    <CardDescription>
+                      Viết và chỉnh sửa truyện trực tiếp trên trình duyệt
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={createNewDraft}
+                    >
+                      <FilePlus className="w-4 h-4 mr-2" />
+                      File mới
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={saveDraft}
+                      disabled={!currentDraftName.trim()}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Lưu
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* File Name Input */}
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Tên file
+                  </label>
+                  <input
+                    type="text"
+                    value={currentDraftName}
+                    onChange={(e) => setCurrentDraftName(e.target.value)}
+                    placeholder="Nhập tên file (ví dụ: Truyện của tôi)"
+                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                {/* Text Editor */}
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Nội dung
+                  </label>
+                  <textarea
+                    value={editorContent}
+                    onChange={(e) => setEditorContent(e.target.value)}
+                    placeholder="Bắt đầu viết truyện của bạn ở đây..."
+                    className="w-full h-96 px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono text-sm"
+                  />
+                  <div className="mt-2 text-xs text-muted-foreground text-right">
+                    {editorContent.length} ký tự
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Saved Drafts List */}
+            <Card variant="elevated">
+              <CardHeader>
+                <CardTitle>File đã lưu</CardTitle>
+                <CardDescription>
+                  Danh sách các file đã lưu, có thể mở lại để soạn thảo tiếp
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {savedDrafts.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>Chưa có file nào được lưu</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {savedDrafts.map((draft) => (
+                      <motion.div
+                        key={draft.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`
+                          flex items-center justify-between p-4 rounded-lg border transition-colors
+                          ${selectedDraftId === draft.id 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border hover:bg-secondary/30'
+                          }
+                        `}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground truncate">{draft.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(draft.updatedAt).toLocaleString('vi-VN')} • {draft.content.length} ký tự
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => loadDraft(draft.id)}
+                            title="Mở file"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            onClick={() => deleteDraft(draft.id)}
+                            title="Xóa file"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
       </motion.div>
     </DefaultLayout>
   );

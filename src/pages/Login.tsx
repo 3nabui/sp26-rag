@@ -32,11 +32,13 @@ export default function Login() {
         >
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-amber-400 flex items-center justify-center shadow-glow">
-              <BookOpen className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img 
+              src="/logo-storynest.png" 
+              alt="StoryNest Logo" 
+              className="w-12 h-12 object-contain"
+            />
             <div>
-              <h1 className="font-serif font-bold text-2xl text-foreground">RAG Story</h1>
+              <h1 className="font-serif font-bold text-2xl text-foreground">StoryNest</h1>
               <p className="text-sm text-muted-foreground">Analysis System</p>
             </div>
           </div>
@@ -169,9 +171,13 @@ export default function Login() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="relative z-10 text-center max-w-lg"
         >
-          {/* Decorative book */}
-          <div className="w-24 h-24 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-primary to-amber-400 flex items-center justify-center shadow-glow animate-pulse-glow">
-            <BookOpen className="w-12 h-12 text-primary-foreground" />
+          {/* Decorative logo */}
+          <div className="w-24 h-24 mx-auto mb-8 flex items-center justify-center animate-pulse-glow">
+            <img 
+              src="/logo-storynest.png" 
+              alt="StoryNest Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
 
           <h3 className="font-serif text-3xl font-bold text-foreground mb-4">

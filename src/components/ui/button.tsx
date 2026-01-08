@@ -15,7 +15,7 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-secondary hover:text-secondary-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        // Custom variants for RAG Story Analysis
+        // Custom variants for StoryNest
         gradient: "bg-gradient-to-r from-primary to-amber-400 text-primary-foreground shadow-lg hover:shadow-glow hover:scale-[1.02] active:scale-[0.98]",
         glass: "bg-card/60 backdrop-blur-xl border border-border/50 text-foreground hover:bg-card/80 hover:border-primary/30",
         accent: "bg-accent text-accent-foreground hover:bg-accent/90 shadow-md",
