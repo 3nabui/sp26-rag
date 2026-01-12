@@ -1,148 +1,247 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   BarChart3, 
   Users, 
   Heart, 
   Zap, 
-  TrendingUp,
   BookOpen,
-  Info
+  Info,
+  FileText,
+  Clock3,
+  ArrowRight,
 } from 'lucide-react';
 import { DefaultLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { mockAnalysisResult, mockManuscripts } from '@/utils/mockData';
+import { Button } from '@/components/ui/button';
+import { mockManuscripts } from '@/utils/mockData';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
   ResponsiveContainer,
   BarChart,
   Bar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  Cell
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
 } from 'recharts';
 
-const COLORS = {
-  primary: '#f59e0b',
-  accent: '#14b8a6',
-  success: '#22c55e',
-  info: '#0ea5e9',
-  warning: '#f59e0b',
-  destructive: '#ef4444',
-};
+type Pacing = 'slow' | 'medium' | 'fast';
 
-// Prepare pacing data
-const pacingData = Array.from({ length: 24 }, (_, i) => {
-  const chapter = i + 1;
-  let pacing: 'slow' | 'medium' | 'fast' = 'medium';
-  let value = 50;
-
-  if (mockAnalysisResult.pacing.slow.includes(chapter)) {
-    pacing = 'slow';
-    value = 25;
-  } else if (mockAnalysisResult.pacing.fast.includes(chapter)) {
-    pacing = 'fast';
-    value = 85;
-  }
-
-  return { chapter, pacing, value };
-});
-
-// Prepare emotion data
-const emotionData = mockAnalysisResult.emotionFlow;
-
-// Prepare character data
-const characterData = mockAnalysisResult.characters.map(char => ({
-  name: char.name,
-  appearances: char.appearances,
-  role: char.role,
-}));
-
-// Character relation data for radar chart
-const relationData = mockAnalysisResult.characterRelations.map(rel => ({
-  subject: `${rel.character1}-${rel.character2}`,
-  relationship: rel.relationship,
-  strength: rel.strength,
-}));
-
-function PacingLegend() {
-  return (
-    <div className="flex items-center gap-4 text-sm">
-      <div className="flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full bg-success" />
-        <span className="text-muted-foreground">Chậm</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full bg-info" />
-        <span className="text-muted-foreground">Vừa</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full bg-warning" />
-        <span className="text-muted-foreground">Nhanh</span>
-      </div>
-    </div>
-  );
+interface Scene {
+  id: string;
+  index: number;
+  title: string;
+  mainIssue: string;
+  emotion: string;
+  emotionIntensity: number;
+  pacing: Pacing;
+  characters: string[];
+  wordCount: number;
 }
 
-const getPacingColor = (pacing: string) => {
-  switch (pacing) {
-    case 'slow': return COLORS.success;
-    case 'fast': return COLORS.warning;
-    default: return COLORS.info;
-  }
+interface ChapterVersion {
+  version: number;
+  chapter: number;
+  updatedAt: string;
+  note: string;
+}
+
+const mockScenesByChapter: Record<number, Scene[]> = {
+  1: [
+    {
+      id: '1-1',
+      index: 1,
+      title: 'Bến sông về đêm',
+      mainIssue: 'Giới thiệu bối cảnh và tâm trạng cô đơn của Minh',
+      emotion: 'Calm',
+      emotionIntensity: 35,
+      pacing: 'slow',
+      characters: ['Minh'],
+      wordCount: 950,
+    },
+    {
+      id: '1-2',
+      index: 2,
+      title: 'Gặp lại Linh',
+      mainIssue: 'Thiết lập mối quan hệ và xung đột tiềm ẩn',
+      emotion: 'Hopeful',
+      emotionIntensity: 55,
+      pacing: 'medium',
+      characters: ['Minh', 'Linh'],
+      wordCount: 1200,
+    },
+  ],
+  4: [
+    {
+      id: '4-1',
+      index: 1,
+      title: 'Đêm truy đuổi trong rừng',
+      mainIssue: 'Minh bị Hùng dồn vào thế bí',
+      emotion: 'Fearful',
+      emotionIntensity: 85,
+      pacing: 'fast',
+      characters: ['Minh', 'Hùng'],
+      wordCount: 1400,
+    },
+    {
+      id: '4-2',
+      index: 2,
+      title: 'Cliffhanger at the Cliff',
+      mainIssue: 'Open ending with life-or-death choice',
+      emotion: 'Tense',
+      emotionIntensity: 90,
+      pacing: 'fast',
+      characters: ['Minh', 'Hùng'],
+      wordCount: 1100,
+    },
+  ],
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
-        <p className="font-medium text-foreground">Chương {label}</p>
-        {payload.map((p: any, index: number) => (
-          <p key={index} className="text-sm text-muted-foreground">
-            {p.name}: <span className="font-medium text-foreground">{p.value}</span>
-          </p>
-        ))}
-      </div>
-    );
-  }
-  return null;
+const chapterVersionHistory: ChapterVersion[] = [
+  {
+    version: 3,
+    chapter: 4,
+    updatedAt: '2024-12-22',
+    note: 'Revised climax, increased pacing in final scene.',
+  },
+  {
+    version: 2,
+    chapter: 4,
+    updatedAt: '2024-12-18',
+    note: 'Added dialogue between Minh and Hung.',
+  },
+  {
+    version: 1,
+    chapter: 4,
+    updatedAt: '2024-12-10',
+    note: 'First draft of the chapter.',
+  },
+];
+
+const pacingLabel: Record<Pacing, string> = {
+  slow: 'Slow',
+  medium: 'Medium',
+  fast: 'Fast',
+};
+
+const pacingColor: Record<Pacing, string> = {
+  slow: 'bg-success/10 text-success border-success/20',
+  medium: 'bg-info/10 text-info border-info/20',
+  fast: 'bg-warning/10 text-warning border-warning/20',
 };
 
 export default function AnalysisPage() {
-  const [selectedManuscript] = useState(mockManuscripts[0]);
-  const summary = mockAnalysisResult.summary;
+  const [selectedManuscriptId, setSelectedManuscriptId] = useState<number>(mockManuscripts[0].id);
+  const [selectedChapter, setSelectedChapter] = useState<number>(4);
+
+  const selectedManuscript = useMemo(
+    () => mockManuscripts.find((m) => m.id === selectedManuscriptId)!,
+    [selectedManuscriptId],
+  );
+
+  const scenes = mockScenesByChapter[selectedChapter] || [];
+  const totalScenes = scenes.length;
+
+  const characterFrequency = useMemo(() => {
+    const freq = new Map<string, number>();
+    scenes.forEach((scene) => {
+      scene.characters.forEach((name) => {
+        freq.set(name, (freq.get(name) || 0) + 1);
+      });
+    });
+    return Array.from(freq.entries()).map(([name, count]) => ({ name, count }));
+  }, [scenes]);
+
+  const avgWordsPerScene = totalScenes
+    ? Math.round(scenes.reduce((sum, s) => sum + s.wordCount, 0) / totalScenes)
+    : 0;
+
+  const dominantEmotion = useMemo(() => {
+    if (!scenes.length) return '—';
+    const map = new Map<string, number>();
+    scenes.forEach((s) => map.set(s.emotion, (map.get(s.emotion) || 0) + s.emotionIntensity));
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1])[0][0];
+  }, [scenes]);
 
   return (
-    <DefaultLayout title="Phân Tích" role="author">
+    <DefaultLayout title="Chapter Analysis" role="author">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6"
       >
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="font-serif text-2xl font-bold text-foreground">{selectedManuscript.title}</h2>
-            <p className="text-muted-foreground mt-1">
-              Phân tích chi tiết bản thảo của bạn
+        {/* Header: chọn truyện & chương */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <h2 className="font-serif text-2xl font-bold text-foreground">AI Content Analysis</h2>
+            <p className="text-sm text-muted-foreground">
+              Select manuscript and chapter to view pacing, emotion, character, and scene analysis.
             </p>
           </div>
-          <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-            Hoàn thành phân tích
-          </Badge>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="w-56">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Manuscript</p>
+              <Select
+                value={String(selectedManuscriptId)}
+                onValueChange={(value) => setSelectedManuscriptId(Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select manuscript" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockManuscripts.map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.title} (v{m.version})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-40">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Chapter</p>
+              <Select
+                value={String(selectedChapter)}
+                onValueChange={(value) => setSelectedChapter(Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select chapter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: selectedManuscript.chapters || 0 }, (_, i) => i + 1).map(
+                    (ch) => (
+                      <SelectItem key={ch} value={String(ch)}>
+                        Chapter {ch}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="gradient" className="gap-2 mt-2 md:mt-5">
+              Request AI Analysis for This Chapter
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
-        {/* Summary Cards */}
+        {/* Thông tin bản thảo & version */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card variant="metric">
             <CardContent className="p-4">
@@ -151,8 +250,10 @@ export default function AnalysisPage() {
                   <BookOpen className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{summary.totalChapters}</p>
-                  <p className="text-xs text-muted-foreground">Tổng chương</p>
+                  <p className="text-sm text-muted-foreground">Manuscript</p>
+                  <p className="text-sm font-semibold text-foreground line-clamp-1">
+                    {selectedManuscript.title}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -161,11 +262,14 @@ export default function AnalysisPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-accent" />
+                  <Info className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{(summary.totalWords / 1000).toFixed(0)}K</p>
-                  <p className="text-xs text-muted-foreground">Tổng số từ</p>
+                  <p className="text-2xl font-bold text-foreground">v{selectedManuscript.version}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedManuscript.fileName.split('.').pop()?.toUpperCase()} •{' '}
+                    {new Date(selectedManuscript.uploadedAt).toLocaleDateString('en-US')}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -174,11 +278,13 @@ export default function AnalysisPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-info" />
+                  <FileText className="w-5 h-5 text-info" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{summary.averageWordsPerChapter.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Từ/chương TB</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {selectedManuscript.chapters ?? '—'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Total Chapters</p>
                 </div>
               </div>
             </CardContent>
@@ -187,71 +293,138 @@ export default function AnalysisPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                  <Info className="w-5 h-5 text-success" />
+                  <Clock3 className="w-5 h-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-foreground">{summary.writingStyle}</p>
-                  <p className="text-xs text-muted-foreground">Phong cách viết</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    Chapter {selectedChapter} History
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {chapterVersionHistory.length} versions saved
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Analysis Tabs */}
-        <Tabs defaultValue="pacing" className="space-y-6">
+        {/* Tabs phân tích */}
+        <Tabs defaultValue="chapter" className="space-y-6">
           <TabsList className="bg-secondary/50 p-1">
-            <TabsTrigger value="pacing" className="flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              Nhịp độ
+            <TabsTrigger value="chapter" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Chapter Overview
             </TabsTrigger>
-            <TabsTrigger value="emotion" className="flex items-center gap-2">
-              <Heart className="w-4 h-4" />
-              Cảm xúc
+            <TabsTrigger value="scenes" className="flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              Scenes & Emotions
             </TabsTrigger>
             <TabsTrigger value="characters" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Nhân vật
+              Characters
             </TabsTrigger>
-            <TabsTrigger value="relations" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Mối quan hệ
+            <TabsTrigger value="versions" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Chapter History
             </TabsTrigger>
           </TabsList>
 
-          {/* Pacing Tab */}
-          <TabsContent value="pacing">
+          {/* Tổng quan chương */}
+          <TabsContent value="chapter">
             <Card variant="elevated">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Phân tích nhịp độ</CardTitle>
-                    <CardDescription>Nhịp độ câu chuyện qua từng chương</CardDescription>
-                  </div>
-                  <PacingLegend />
-                </div>
+                <CardTitle>Chapter {selectedChapter} Overview</CardTitle>
+                <CardDescription>
+                  Statistics on pacing, dominant emotions, and scene structure of the chapter.
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={pacingData}>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card variant="metric">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Zap className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-xl font-bold text-foreground">{totalScenes || '—'}</p>
+                          <p className="text-xs text-muted-foreground">Scenes in Chapter</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card variant="metric">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-heart/10 flex items-center justify-center">
+                          <Heart className="w-4 h-4 text-pink-500" />
+                        </div>
+                        <div>
+                          <p className="text-base font-bold text-foreground">{dominantEmotion}</p>
+                          <p className="text-xs text-muted-foreground">Dominant Emotion</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card variant="metric">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-info/10 flex items-center justify-center">
+                          <BookOpen className="w-4 h-4 text-info" />
+                        </div>
+                  <div>
+                          <p className="text-xl font-bold text-foreground">
+                            {avgWordsPerScene ? avgWordsPerScene.toLocaleString() : '—'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Words / Scene (Est.)</p>
+                        </div>
+                  </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Pacing by Scene
+                  </p>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={scenes}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis 
-                        dataKey="chapter" 
+                        dataKey="index"
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
-                        tickFormatter={(value) => `Ch.${value}`}
+                        tickFormatter={(v) => `Scene ${v}`}
                       />
                       <YAxis 
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
+                        domain={[0, 100]}
                       />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="value" name="Nhịp độ" radius={[4, 4, 0, 0]}>
-                        {pacingData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={getPacingColor(entry.pacing)} />
-                        ))}
-                      </Bar>
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const s = payload[0].payload as Scene;
+                            return (
+                              <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow">
+                                <p className="font-medium text-foreground">
+                                  Scene {s.index}: {s.title}
+                                </p>
+                                <p className="text-muted-foreground">
+                                  {s.emotion} • Pacing {pacingLabel[s.pacing]}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar
+                        dataKey="emotionIntensity"
+                        name="Emotion Intensity"
+                        radius={[4, 4, 0, 0]}
+                        fill="hsl(var(--primary))"
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -259,172 +432,148 @@ export default function AnalysisPage() {
             </Card>
           </TabsContent>
 
-          {/* Emotion Tab */}
-          <TabsContent value="emotion">
+          {/* Scene & cảm xúc */}
+          <TabsContent value="scenes">
             <Card variant="elevated">
               <CardHeader>
-                <CardTitle>Dòng chảy cảm xúc</CardTitle>
-                <CardDescription>Cường độ cảm xúc qua từng chương</CardDescription>
+                <CardTitle>Scenes in Chapter {selectedChapter}</CardTitle>
+                <CardDescription>
+                  Description of main content, issues, and emotions of each scene.
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={emotionData}>
-                      <defs>
-                        <linearGradient id="emotionGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={COLORS.accent} stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor={COLORS.accent} stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis 
-                        dataKey="chapter" 
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                        tickFormatter={(value) => `Ch.${value}`}
-                      />
-                      <YAxis 
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Area 
-                        type="monotone" 
-                        dataKey="intensity" 
-                        name="Cường độ"
-                        stroke={COLORS.accent} 
-                        fillOpacity={1} 
-                        fill="url(#emotionGradient)" 
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                {scenes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    This chapter has no scene analysis yet. Please upload manuscript or request AI analysis.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {scenes.map((scene) => (
+                      <div
+                        key={scene.id}
+                        className="rounded-lg border border-border bg-secondary/30 p-4"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              Scene {scene.index}
+                            </Badge>
+                            <p className="font-medium text-foreground">{scene.title}</p>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${pacingColor[scene.pacing]}`}
+                          >
+                            Pacing: {pacingLabel[scene.pacing]}
+                          </Badge>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {emotionData.map((item, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      Ch.{item.chapter}: {item.emotion}
+                        <p className="mt-2 text-sm text-muted-foreground">{scene.mainIssue}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          <span>
+                            Emotion: <span className="font-medium text-foreground">{scene.emotion}</span>
+                          </span>
+                          <span>
+                            Est. Word Count:{' '}
+                            <span className="font-medium text-foreground">
+                              {scene.wordCount.toLocaleString()}
+                            </span>
+                          </span>
+                          <span className="flex flex-wrap items-center gap-1">
+                            Characters:{' '}
+                            {scene.characters.map((c) => (
+                              <Badge key={c} variant="secondary" className="text-[10px]">
+                                {c}
                     </Badge>
+                            ))}
+                          </span>
+                        </div>
+                      </div>
                   ))}
                 </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Characters Tab */}
+          {/* Nhân vật */}
           <TabsContent value="characters">
             <Card variant="elevated">
               <CardHeader>
-                <CardTitle>Phân tích nhân vật</CardTitle>
-                <CardDescription>Số lần xuất hiện và vai trò của nhân vật</CardDescription>
+                <CardTitle>Characters in Chapter {selectedChapter}</CardTitle>
+                <CardDescription>
+                  Frequency of appearance for each character based on analyzed scenes.
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={characterData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis 
-                        type="number" 
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
-                      <YAxis 
-                        type="category" 
-                        dataKey="name" 
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                        width={80}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar 
-                        dataKey="appearances" 
-                        name="Lần xuất hiện"
-                        fill={COLORS.primary} 
-                        radius={[0, 4, 4, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
-                  {characterData.map((char) => (
-                    <Card key={char.name} variant="glass" className="p-4 text-center">
-                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-2">
-                        <span className="text-lg font-medium text-primary">{char.name[0]}</span>
-                      </div>
-                      <p className="font-medium text-foreground text-sm">{char.name}</p>
-                      <Badge variant="secondary" className="mt-1 text-xs">{char.role}</Badge>
-                    </Card>
-                  ))}
-                </div>
+                {characterFrequency.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No character data available for this chapter.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Character</TableHead>
+                        <TableHead>Scenes Appeared</TableHead>
+                        <TableHead className="text-right">Note</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {characterFrequency.map((char) => (
+                        <TableRow key={char.name}>
+                          <TableCell className="font-medium">{char.name}</TableCell>
+                          <TableCell>{char.count}</TableCell>
+                          <TableCell className="text-right text-xs text-muted-foreground">
+                            Appears in{' '}
+                            {Math.round((char.count / (totalScenes || 1)) * 100)}% of scenes
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Relations Tab */}
-          <TabsContent value="relations">
+          {/* Lịch sử chương & upload/version */}
+          <TabsContent value="versions">
             <Card variant="elevated">
               <CardHeader>
-                <CardTitle>Mối quan hệ nhân vật</CardTitle>
-                <CardDescription>Cường độ và loại mối quan hệ giữa các nhân vật</CardDescription>
+                <CardTitle>Chapter {selectedChapter} Manuscript History</CardTitle>
+                <CardDescription>
+                  Track edits and uploaded versions for this chapter.
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={relationData}>
-                        <PolarGrid stroke="hsl(var(--border))" />
-                        <PolarAngleAxis 
-                          dataKey="relationship" 
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={11}
-                        />
-                        <PolarRadiusAxis 
-                          angle={30} 
-                          domain={[0, 100]}
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={10}
-                        />
-                        <Radar
-                          name="Cường độ"
-                          dataKey="strength"
-                          stroke={COLORS.primary}
-                          fill={COLORS.primary}
-                          fillOpacity={0.3}
-                        />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="space-y-4">
-                    {mockAnalysisResult.characterRelations.map((rel, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="p-4 rounded-lg bg-secondary/30 border-l-2 border-primary"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-foreground">{rel.character1}</span>
-                            <span className="text-muted-foreground">↔</span>
-                            <span className="font-medium text-foreground">{rel.character2}</span>
-                          </div>
-                          <Badge variant="outline">{rel.relationship}</Badge>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-primary rounded-full transition-all duration-500"
-                              style={{ width: `${rel.strength}%` }}
-                            />
-                          </div>
-                          <span className="text-sm text-muted-foreground w-12 text-right">
-                            {rel.strength}%
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  New upload will be linked to{' '}
+                  <span className="font-semibold text-foreground">
+                    Chapter {selectedChapter} • Version v{selectedManuscript.version + 1}
                           </span>
+                  . After AI analysis, history will be updated below.
                         </div>
-                      </motion.div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Version</TableHead>
+                      <TableHead>Update Date</TableHead>
+                      <TableHead>Note</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {chapterVersionHistory.map((ver) => (
+                      <TableRow key={`${ver.version}-${ver.updatedAt}`}>
+                        <TableCell className="font-medium">v{ver.version}</TableCell>
+                        <TableCell>
+                          {new Date(ver.updatedAt).toLocaleDateString('en-US')}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{ver.note}</TableCell>
+                      </TableRow>
                     ))}
-                  </div>
-                </div>
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>

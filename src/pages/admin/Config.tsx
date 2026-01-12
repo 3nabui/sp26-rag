@@ -29,14 +29,14 @@ export default function AdminConfig() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>RAG Parameters</CardTitle>
-                <CardDescription>Chunking, retrieval và chiến lược split</CardDescription>
+                <CardDescription>Chunking, retrieval and splitting strategy</CardDescription>
               </div>
               <Badge variant="outline" className="bg-secondary/30">Realtime</Badge>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Chunk size (tokens)</p>
+                  <p className="text-sm text-muted-foreground">Chunk Size (tokens)</p>
                   <Input
                     type="number"
                     value={chunkSize}
@@ -46,7 +46,7 @@ export default function AdminConfig() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Top-k retrieval</p>
+                  <p className="text-sm text-muted-foreground">Top-K Retrieval</p>
                   <Input
                     type="number"
                     value={topK}
@@ -58,7 +58,7 @@ export default function AdminConfig() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Text splitting strategy</p>
+                <p className="text-sm text-muted-foreground">Text Splitting Strategy</p>
                 <select
                   value={strategy}
                   onChange={(e) => setStrategy(e.target.value)}
@@ -72,7 +72,7 @@ export default function AdminConfig() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Max context length</p>
+                <p className="text-sm text-muted-foreground">Max Context Length</p>
                 <div className="flex items-center gap-3">
                   <input
                     type="range"
@@ -89,10 +89,10 @@ export default function AdminConfig() {
 
               <div className="flex items-center gap-2">
                 <Button variant="gradient" className="gap-2">
-                  <SlidersHorizontal className="w-4 h-4" /> Lưu tham số
+                  <SlidersHorizontal className="w-4 h-4" /> Save Parameters
                 </Button>
                 <Button variant="outline" className="gap-2">
-                  <Repeat className="w-4 h-4" /> Reset mặc định
+                  <Repeat className="w-4 h-4" /> Reset to Default
                 </Button>
               </div>
             </CardContent>
@@ -103,13 +103,13 @@ export default function AdminConfig() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>System & Storage</CardTitle>
-                <CardDescription>Cấu hình dung lượng và chính sách hệ thống</CardDescription>
+                <CardDescription>Storage capacity and system policy configuration</CardDescription>
               </div>
               <Badge variant="outline" className="bg-secondary/30">Global</Badge>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Ngưỡng cảnh báo dung lượng (%)</p>
+                <p className="text-sm text-muted-foreground">Storage Alert Threshold (%)</p>
                 <Input
                   type="number"
                   value={storageThreshold}
@@ -124,22 +124,22 @@ export default function AdminConfig() {
                   <Settings className="w-5 h-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium text-foreground">Auto scale index</p>
-                    <p className="text-xs text-muted-foreground">Bật/tắt mở rộng shard</p>
+                    <p className="text-xs text-muted-foreground">Enable/disable shard scaling</p>
                   </div>
                 </button>
                 <button className="p-3 rounded-lg border border-border bg-secondary/30 flex items-center gap-3 text-left">
                   <SplitSquareHorizontal className="w-5 h-5 text-accent" />
                   <div>
                     <p className="text-sm font-medium text-foreground">Auto re-chunk</p>
-                    <p className="text-xs text-muted-foreground">Khi đổi tham số chunk</p>
+                    <p className="text-xs text-muted-foreground">When chunk parameters change</p>
                   </div>
                 </button>
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Ghi chú triển khai / release</p>
+                <p className="text-sm text-muted-foreground">Deployment / Release Notes</p>
                 <Textarea
-                  placeholder="Ví dụ: Tăng top-k lên 8 cho truyện dài; kiểm tra latency shard-3..."
+                  placeholder="Example: Increase top-k to 8 for long stories; check shard-3 latency..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="min-h-[120px]"
@@ -148,7 +148,7 @@ export default function AdminConfig() {
 
               <div className="flex items-center gap-2">
                 <Button variant="gradient" className="gap-2">
-                  <Gauge className="w-4 h-4" /> Lưu cấu hình hệ thống
+                  <Gauge className="w-4 h-4" /> Save System Configuration
                 </Button>
               </div>
             </CardContent>

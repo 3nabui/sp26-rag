@@ -32,7 +32,7 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
-              placeholder="Tìm kiếm bản thảo, phân tích..." 
+              placeholder="Search manuscripts, analysis..." 
               className="pl-10 bg-secondary/50 border-transparent focus:bg-input focus:border-border"
             />
           </div>
@@ -67,15 +67,15 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Tài khoản của tôi</DropdownMenuLabel>
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <User className="w-4 h-4 mr-2" />
-                Hồ sơ cá nhân
+                Profile
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="w-4 h-4 mr-2" />
-                Cài đặt
+                Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
@@ -83,7 +83,7 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
                 onClick={() => navigate('/login')}
               >
                 <LogOut className="w-4 h-4 mr-2" />
-                Đăng xuất
+                Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

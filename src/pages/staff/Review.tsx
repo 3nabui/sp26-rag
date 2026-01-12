@@ -35,7 +35,7 @@ const flaggedManuscripts: FlaggedManuscript[] = [
     id: 'MS-1042',
     title: 'Bóng Tối Ven Sông',
     author: 'Trần Minh Anh',
-    flaggedReason: 'AI phát hiện mạch truyện đứt đoạn ở chương 7',
+    flaggedReason: 'AI detected broken plot line in chapter 7',
     status: 'needs-review',
     lastUpdated: '2024-12-03',
   },
@@ -43,7 +43,7 @@ const flaggedManuscripts: FlaggedManuscript[] = [
     id: 'MS-1068',
     title: 'Hành Trình Phía Bắc',
     author: 'Lê Quang',
-    flaggedReason: 'Thiếu phân tích cảm xúc cho chương 3-4',
+    flaggedReason: 'Missing emotion analysis for chapters 3-4',
     status: 'pending',
     lastUpdated: '2024-12-01',
   },
@@ -51,7 +51,7 @@ const flaggedManuscripts: FlaggedManuscript[] = [
     id: 'MS-1005',
     title: 'Những Vì Sao Trên Đỉnh Đồi',
     author: 'Hoàng Gia Bảo',
-    flaggedReason: 'Kết quả phân tích incomplete do timeout',
+    flaggedReason: 'Analysis incomplete due to timeout',
     status: 'resolved',
     lastUpdated: '2024-11-28',
   },
@@ -60,33 +60,33 @@ const flaggedManuscripts: FlaggedManuscript[] = [
 const faqs = [
   {
     id: 'faq-1',
-    question: 'Làm sao để cải thiện nhịp độ ở đoạn cao trào?',
-    answer: 'Tăng tần suất sự kiện, rút ngắn đoạn mô tả và xen kẽ hội thoại.',
+    question: 'How to improve pacing in climax scenes?',
+    answer: 'Increase event frequency, shorten descriptions, and interweave dialogue.',
   },
   {
     id: 'faq-2',
-    question: 'Khi nào nên giới thiệu nhân vật mới?',
-    answer: 'Chỉ khi nhân vật phục vụ mạch chính hoặc làm rõ xung đột.',
+    question: 'When should I introduce new characters?',
+    answer: 'Only when the character serves the main plot or clarifies conflict.',
   },
 ];
 
 const tips = [
   {
     id: 'tip-1',
-    title: 'Giữ giọng kể nhất quán',
-    content: 'Đảm bảo ngôi kể và điểm nhìn không thay đổi đột ngột giữa các chương.',
+    title: 'Maintain Consistent Narrative Voice',
+    content: 'Ensure narrative perspective and point of view don\'t change abruptly between chapters.',
   },
   {
     id: 'tip-2',
-    title: 'Đặt hook đầu chương',
-    content: 'Mở đầu mỗi chương bằng tình huống hoặc câu hỏi kích thích tò mò.',
+    title: 'Place Hook at Chapter Start',
+    content: 'Begin each chapter with a situation or question that sparks curiosity.',
   },
 ];
 
 const statusConfig: Record<FlagStatus, { label: string; className: string }> = {
-  pending: { label: 'Chờ xử lý', className: 'bg-warning/10 text-warning border-warning/20' },
-  'needs-review': { label: 'Cần rà soát', className: 'bg-destructive/10 text-destructive border-destructive/20' },
-  resolved: { label: 'Đã xử lý', className: 'bg-success/10 text-success border-success/20' },
+  pending: { label: 'Pending', className: 'bg-warning/10 text-warning border-warning/20' },
+  'needs-review': { label: 'Needs Review', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+  resolved: { label: 'Resolved', className: 'bg-success/10 text-success border-success/20' },
 };
 
 export default function StaffReviewPage() {
@@ -109,7 +109,7 @@ export default function StaffReviewPage() {
           <Card variant="metric" className="hover-lift">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Bản thảo bị gắn cờ</p>
+                <p className="text-sm text-muted-foreground mb-1">Flagged Manuscripts</p>
                 <p className="text-3xl font-bold text-foreground font-serif">{flaggedManuscripts.length}</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center">
@@ -120,7 +120,7 @@ export default function StaffReviewPage() {
           <Card variant="metric" className="hover-lift">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Đang cần rà soát</p>
+                <p className="text-sm text-muted-foreground mb-1">Needs Review</p>
                 <p className="text-3xl font-bold text-foreground font-serif">
                   {flaggedManuscripts.filter(f => f.status === 'needs-review').length}
                 </p>
@@ -133,7 +133,7 @@ export default function StaffReviewPage() {
           <Card variant="metric" className="hover-lift">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Đã xử lý</p>
+                <p className="text-sm text-muted-foreground mb-1">Resolved</p>
                 <p className="text-3xl font-bold text-foreground font-serif">
                   {flaggedManuscripts.filter(f => f.status === 'resolved').length}
                 </p>
@@ -151,11 +151,11 @@ export default function StaffReviewPage() {
           <Card variant="elevated" className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Bản thảo bị gắn cờ</CardTitle>
-                <CardDescription>Danh sách hệ thống yêu cầu staff kiểm tra</CardDescription>
+                <CardTitle>Flagged Manuscripts</CardTitle>
+                <CardDescription>List of manuscripts requiring staff review</CardDescription>
               </div>
               <Badge variant="outline" className="bg-secondary/30">
-                {flaggedManuscripts.length} mục
+                {flaggedManuscripts.length} items
               </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -178,12 +178,12 @@ export default function StaffReviewPage() {
                           <p className="font-medium text-foreground">{item.title}</p>
                           <Badge variant="outline" className={status.className}>{status.label}</Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">Tác giả: {item.author}</p>
+                        <p className="text-sm text-muted-foreground mt-1">Author: {item.author}</p>
                         <p className="text-sm text-foreground mt-2">{item.flaggedReason}</p>
                       </div>
                       <div className="text-xs text-muted-foreground text-right">
                         <p>ID: {item.id}</p>
-                        <p>Cập nhật: {new Date(item.lastUpdated).toLocaleDateString('vi-VN')}</p>
+                        <p>Updated: {new Date(item.lastUpdated).toLocaleDateString('en-US')}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -195,50 +195,50 @@ export default function StaffReviewPage() {
           {/* Actions on selected */}
           <Card variant="glass">
             <CardHeader>
-              <CardTitle>Thao tác</CardTitle>
-              <CardDescription>Rà soát, phản hồi, và xử lý phân tích</CardDescription>
+              <CardTitle>Actions</CardTitle>
+              <CardDescription>Review, provide feedback, and process analysis</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedManuscript ? (
                 <>
                   <div className="p-3 rounded-lg bg-secondary/30">
-                    <p className="text-sm text-muted-foreground">Đang xem</p>
+                    <p className="text-sm text-muted-foreground">Viewing</p>
                     <p className="font-medium text-foreground">{selectedManuscript.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Tác giả: {selectedManuscript.author}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Author: {selectedManuscript.author}</p>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" className="gap-2">
-                      <Info className="w-4 h-4" /> Xem chi tiết AI
+                      <Info className="w-4 h-4" /> View AI Details
                     </Button>
                     <Button variant="outline" size="sm" className="gap-2">
-                      <Pencil className="w-4 h-4" /> Điều chỉnh kết quả
+                      <Pencil className="w-4 h-4" /> Adjust Results
                     </Button>
                     <Button variant="gradient" size="sm" className="gap-2">
-                      <RefreshCw className="w-4 h-4" /> Re-run phân tích
+                      <RefreshCw className="w-4 h-4" /> Re-run Analysis
                     </Button>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <MessageSquare className="w-4 h-4 text-primary" />
-                      <p className="text-sm font-medium text-foreground">Phản hồi cho tác giả</p>
+                      <p className="text-sm font-medium text-foreground">Feedback for Author</p>
                     </div>
                     <Textarea
-                      placeholder="Nhập phản hồi chi tiết, ví dụ: cần bổ sung mạch cảm xúc chương 5-6..."
+                      placeholder="Enter detailed feedback, e.g., need to add emotional arc for chapters 5-6..."
                       value={feedback}
                       onChange={(e) => setFeedback(e.target.value)}
                       className="min-h-[120px]"
                     />
                     <div className="flex justify-end">
                       <Button variant="gradient" size="sm" disabled={!feedback.trim()}>
-                        Gửi phản hồi
+                        Send Feedback
                       </Button>
                     </div>
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">Chọn một bản thảo để thao tác.</p>
+                <p className="text-sm text-muted-foreground">Select a manuscript to take action.</p>
               )}
             </CardContent>
           </Card>
@@ -249,10 +249,10 @@ export default function StaffReviewPage() {
           <Card variant="elevated">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Quản lý FAQ</CardTitle>
-                <CardDescription>Chỉnh sửa nội dung giải đáp cho tác giả</CardDescription>
+                <CardTitle>Manage FAQs</CardTitle>
+                <CardDescription>Edit FAQ content for authors</CardDescription>
               </div>
-              <Badge variant="outline" className="bg-secondary/30">{faqs.length} mục</Badge>
+              <Badge variant="outline" className="bg-secondary/30">{faqs.length} items</Badge>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
@@ -265,12 +265,12 @@ export default function StaffReviewPage() {
               </div>
               <div className="border-t border-border pt-4 space-y-3">
                 <Input
-                  placeholder="Câu hỏi mới"
+                  placeholder="New question"
                   value={faqQuestion}
                   onChange={(e) => setFaqQuestion(e.target.value)}
                 />
                 <Textarea
-                  placeholder="Câu trả lời"
+                  placeholder="Answer"
                   value={faqAnswer}
                   onChange={(e) => setFaqAnswer(e.target.value)}
                   className="min-h-[100px]"
@@ -280,7 +280,7 @@ export default function StaffReviewPage() {
                   className="gap-2"
                   disabled={!faqQuestion.trim() || !faqAnswer.trim()}
                 >
-                  <Plus className="w-4 h-4" /> Thêm FAQ
+                  <Plus className="w-4 h-4" /> Add FAQ
                 </Button>
               </div>
             </CardContent>
@@ -290,7 +290,7 @@ export default function StaffReviewPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Writing Tips</CardTitle>
-                <CardDescription>Soạn và quản lý gợi ý viết cho tác giả</CardDescription>
+                <CardDescription>Create and manage writing tips for authors</CardDescription>
               </div>
               <Badge variant="outline" className="bg-secondary/30">{tips.length} tips</Badge>
             </CardHeader>
@@ -308,12 +308,12 @@ export default function StaffReviewPage() {
               </div>
               <div className="border-t border-border pt-4 space-y-3">
                 <Input
-                  placeholder="Tiêu đề tip"
+                  placeholder="Tip title"
                   value={tipTitle}
                   onChange={(e) => setTipTitle(e.target.value)}
                 />
                 <Textarea
-                  placeholder="Nội dung gợi ý"
+                  placeholder="Tip content"
                   value={tipContent}
                   onChange={(e) => setTipContent(e.target.value)}
                   className="min-h-[100px]"
@@ -323,7 +323,7 @@ export default function StaffReviewPage() {
                   className="gap-2"
                   disabled={!tipTitle.trim() || !tipContent.trim()}
                 >
-                  <BookOpen className="w-4 h-4" /> Thêm tip
+                  <BookOpen className="w-4 h-4" /> Add Tip
                 </Button>
               </div>
             </CardContent>

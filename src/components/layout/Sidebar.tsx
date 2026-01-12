@@ -25,20 +25,20 @@ interface SidebarProps {
 
 const authorNavItems: NavItem[] = [
   { label: 'Dashboard', path: '/author/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Upload Bản Thảo', path: '/author/upload', icon: <Upload className="w-5 h-5" /> },
-  { label: 'Phân Tích', path: '/author/analysis', icon: <BarChart3 className="w-5 h-5" /> },
-  { label: 'Hỏi AI', path: '/author/chatbot', icon: <MessageSquare className="w-5 h-5" /> },
+  { label: 'Upload Manuscript', path: '/author/upload', icon: <Upload className="w-5 h-5" /> },
+  { label: 'Analysis', path: '/author/analysis', icon: <BarChart3 className="w-5 h-5" /> },
+  { label: 'Ask AI', path: '/author/chatbot', icon: <MessageSquare className="w-5 h-5" /> },
 ];
 
 const adminNavItems: NavItem[] = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: 'Người Dùng', path: '/admin/users', icon: <Users className="w-5 h-5" /> },
-  { label: 'Cấu Hình', path: '/admin/config', icon: <Settings className="w-5 h-5" /> },
+  { label: 'Users', path: '/admin/users', icon: <Users className="w-5 h-5" /> },
+  { label: 'Configuration', path: '/admin/config', icon: <Settings className="w-5 h-5" /> },
 ];
 
 const staffNavItems: NavItem[] = [
-  { label: 'Xét Duyệt', path: '/staff/review', icon: <FileSearch className="w-5 h-5" /> },
-  { label: 'Nội Dung', path: '/staff/cms', icon: <Folder className="w-5 h-5" /> },
+  { label: 'Review', path: '/staff/review', icon: <FileSearch className="w-5 h-5" /> },
+  { label: 'Content', path: '/staff/cms', icon: <Folder className="w-5 h-5" /> },
 ];
 
 export function Sidebar({ role = 'author' }: SidebarProps) {
@@ -95,12 +95,12 @@ export function Sidebar({ role = 'author' }: SidebarProps) {
       {/* Bottom section */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border">
         <div className="glass rounded-lg p-4">
-          <p className="text-sm font-medium text-foreground mb-1">Cần hỗ trợ?</p>
+          <p className="text-sm font-medium text-foreground mb-1">Need Help?</p>
           <p className="text-xs text-muted-foreground mb-3">
-            Liên hệ với chúng tôi để được giúp đỡ.
+            Contact us for assistance.
           </p>
           <Button variant="outline" size="sm" className="w-full">
-            Trung tâm hỗ trợ
+            Support Center
           </Button>
         </div>
       </div>
