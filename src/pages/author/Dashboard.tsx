@@ -55,7 +55,7 @@ function MetricCard({
             {change !== undefined && (
               <div className={`flex items-center gap-1 mt-2 text-sm ${trend === 'up' ? 'text-success' : 'text-destructive'}`}>
                 <TrendingUp className={`w-4 h-4 ${trend === 'down' && 'rotate-180'}`} />
-                <span>{change}% so với tuần trước</span>
+                <span>{change}% from last week</span>
               </div>
             )}
           </div>
@@ -70,10 +70,10 @@ function MetricCard({
 
 function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, { label: string; className: string }> = {
-    completed: { label: 'Hoàn thành', className: 'bg-success/10 text-success border-success/20' },
-    processing: { label: 'Đang xử lý', className: 'bg-info/10 text-info border-info/20' },
-    pending: { label: 'Chờ xử lý', className: 'bg-warning/10 text-warning border-warning/20' },
-    failed: { label: 'Lỗi', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+    completed: { label: 'Completed', className: 'bg-success/10 text-success border-success/20' },
+    processing: { label: 'Processing', className: 'bg-info/10 text-info border-info/20' },
+    pending: { label: 'Pending', className: 'bg-warning/10 text-warning border-warning/20' },
+    failed: { label: 'Failed', className: 'bg-destructive/10 text-destructive border-destructive/20' },
   };
 
   const variant = variants[status] || variants.pending;
@@ -102,17 +102,17 @@ export default function AuthorDashboard() {
               <div className="relative z-10 flex items-center justify-between">
                 <div>
                   <h2 className="font-serif text-2xl font-bold text-foreground mb-2">
-                    Chào buổi sáng, Võ Hào! 👋
+                    Good Morning, John! 👋
                   </h2>
                   <p className="text-muted-foreground max-w-lg">
-                    Bạn có 2 bản thảo mới cần xem xét và 1 phân tích đã hoàn thành. 
-                    Hãy bắt đầu ngày mới với những ý tưởng sáng tạo!
+                    You have 2 new manuscripts to review and 1 completed analysis. 
+                    Start your day with creative ideas!
                   </p>
                 </div>
                 <Button variant="gradient" size="lg" asChild>
                   <Link to="/author/upload">
                     <Sparkles className="w-5 h-5" />
-                    Upload bản thảo mới
+                    Upload New Manuscript
                   </Link>
                 </Button>
               </div>
@@ -123,25 +123,25 @@ export default function AuthorDashboard() {
         {/* Metrics Grid */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard 
-            title="Tổng bản thảo" 
+            title="Total Manuscripts" 
             value={mockDashboardStats.totalManuscripts} 
             change={mockDashboardStats.weeklyChange.manuscripts}
             icon={FileText} 
           />
           <MetricCard 
-            title="Đã phân tích" 
+            title="Analyzed" 
             value={mockDashboardStats.analyzedManuscripts} 
             change={mockDashboardStats.weeklyChange.analysis}
             icon={BarChart3} 
           />
           <MetricCard 
-            title="Tổng số từ" 
+            title="Total Words" 
             value={`${(mockDashboardStats.totalWords / 1000).toFixed(0)}K`} 
             change={mockDashboardStats.weeklyChange.words}
             icon={BookOpen} 
           />
           <MetricCard 
-            title="Từ/Chương TB" 
+            title="Words/Chapter Avg" 
             value={mockDashboardStats.avgChapterLength.toLocaleString()} 
             icon={Clock} 
           />
@@ -153,10 +153,10 @@ export default function AuthorDashboard() {
           <motion.div variants={itemVariants} className="lg:col-span-2">
             <Card variant="elevated">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Bản thảo gần đây</CardTitle>
+                <CardTitle>Recent Manuscripts</CardTitle>
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/author/upload">
-                    Xem tất cả <ArrowRight className="w-4 h-4 ml-1" />
+                    View All <ArrowRight className="w-4 h-4 ml-1" />
                   </Link>
                 </Button>
               </CardHeader>
@@ -176,7 +176,7 @@ export default function AuthorDashboard() {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-foreground truncate">{manuscript.title}</h4>
                         <p className="text-sm text-muted-foreground">
-                          {manuscript.chapters} chương • {(manuscript.words! / 1000).toFixed(0)}K từ • v{manuscript.version}
+                          {manuscript.chapters} chapters • {(manuscript.words! / 1000).toFixed(0)}K words • v{manuscript.version}
                         </p>
                       </div>
                       <StatusBadge status={manuscript.status} />
@@ -197,16 +197,16 @@ export default function AuthorDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-primary" />
-                  Hỏi AI nhanh
+                  Quick AI Query
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Đặt câu hỏi về bản thảo của bạn và nhận phân tích ngay lập tức.
+                  Ask questions about your manuscript and get instant analysis.
                 </p>
                 <Button variant="gradient" className="w-full" asChild>
                   <Link to="/author/chatbot">
-                    Bắt đầu trò chuyện
+                    Start Chatting
                   </Link>
                 </Button>
               </CardContent>
@@ -217,7 +217,7 @@ export default function AuthorDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Lightbulb className="w-5 h-5 text-warning" />
-                  Gợi ý viết
+                  Writing Tips
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -243,7 +243,7 @@ export default function AuthorDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-accent" />
-                  Nhân vật nổi bật
+                  Featured Characters
                 </CardTitle>
               </CardHeader>
               <CardContent>

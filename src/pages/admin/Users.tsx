@@ -21,7 +21,7 @@ interface UserRow {
 const mockUsers: UserRow[] = [
   { id: 'U-1001', name: 'Võ Hào', email: 'hao@example.com', role: 'author', status: 'active', lastActive: '09:10' },
   { id: 'U-1002', name: 'Nguyễn An', email: 'an@example.com', role: 'staff', status: 'active', lastActive: '09:05' },
-  { id: 'U-1003', name: 'Trần Minh', email: 'minh@example.com', role: 'author', status: 'disabled', lastActive: 'Hôm qua' },
+  { id: 'U-1003', name: 'Trần Minh', email: 'minh@example.com', role: 'author', status: 'disabled', lastActive: 'Yesterday' },
   { id: 'U-1004', name: 'Lê Quang', email: 'quang@example.com', role: 'author', status: 'active', lastActive: '08:40' },
   { id: 'U-1005', name: 'Admin Root', email: 'root@example.com', role: 'admin', status: 'active', lastActive: '08:10' },
 ];
@@ -54,12 +54,12 @@ export default function AdminUsers() {
         <Card variant="elevated">
           <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <CardTitle>Danh sách người dùng</CardTitle>
-              <CardDescription>Quản lý vai trò và trạng thái tài khoản</CardDescription>
+              <CardTitle>User List</CardTitle>
+              <CardDescription>Manage roles and account status</CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Input
-                placeholder="Tìm tên hoặc email..."
+                placeholder="Search name or email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-48"
@@ -69,13 +69,13 @@ export default function AdminUsers() {
                 onChange={(e) => setRoleFilter(e.target.value as any)}
                 className="h-10 rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="all">Tất cả role</option>
+                <option value="all">All Roles</option>
                 <option value="author">Author</option>
                 <option value="staff">Staff</option>
                 <option value="admin">Admin</option>
               </select>
               <Button variant="outline" size="sm" className="gap-2">
-                <Users className="w-4 h-4" /> Thêm người dùng
+                <Users className="w-4 h-4" /> Add User
               </Button>
             </div>
           </CardHeader>
@@ -83,12 +83,12 @@ export default function AdminUsers() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 px-2 text-sm text-muted-foreground">Người dùng</th>
+                  <th className="text-left py-3 px-2 text-sm text-muted-foreground">User</th>
                   <th className="text-left py-3 px-2 text-sm text-muted-foreground">Email</th>
                   <th className="text-left py-3 px-2 text-sm text-muted-foreground">Role</th>
-                  <th className="text-left py-3 px-2 text-sm text-muted-foreground">Trạng thái</th>
-                  <th className="text-left py-3 px-2 text-sm text-muted-foreground">Hoạt động</th>
-                  <th className="text-right py-3 px-2 text-sm text-muted-foreground">Hành động</th>
+                  <th className="text-left py-3 px-2 text-sm text-muted-foreground">Status</th>
+                  <th className="text-left py-3 px-2 text-sm text-muted-foreground">Last Active</th>
+                  <th className="text-right py-3 px-2 text-sm text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>

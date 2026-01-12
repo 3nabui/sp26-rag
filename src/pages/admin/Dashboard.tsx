@@ -32,9 +32,9 @@ const storageUsage = [
 
 export default function AdminDashboard() {
   const stats = useMemo(() => ([
-    { title: 'Yêu cầu trong ngày', value: '1,248', icon: Activity, color: 'text-primary', bg: 'bg-primary/10' },
-    { title: 'Jobs đang chạy', value: '12', icon: RefreshCw, color: 'text-info', bg: 'bg-info/10' },
-    { title: 'Cảnh báo', value: '3', icon: ShieldAlert, color: 'text-destructive', bg: 'bg-destructive/10' },
+    { title: 'Daily Requests', value: '1,248', icon: Activity, color: 'text-primary', bg: 'bg-primary/10' },
+    { title: 'Running Jobs', value: '12', icon: RefreshCw, color: 'text-info', bg: 'bg-info/10' },
+    { title: 'Alerts', value: '3', icon: ShieldAlert, color: 'text-destructive', bg: 'bg-destructive/10' },
   ]), []);
 
   return (
@@ -67,10 +67,10 @@ export default function AdminDashboard() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>System Logs</CardTitle>
-                <CardDescription>Nhật ký gần nhất của hệ thống</CardDescription>
+                <CardDescription>Latest system logs</CardDescription>
               </div>
               <Button variant="ghost" size="sm" className="gap-2">
-                <Terminal className="w-4 h-4" /> Xem tất cả
+                <Terminal className="w-4 h-4" /> View All
               </Button>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -98,14 +98,14 @@ export default function AdminDashboard() {
 
           <Card variant="glass">
             <CardHeader>
-              <CardTitle>Dung lượng & hệ thống</CardTitle>
-              <CardDescription>Theo dõi sử dụng và tài nguyên</CardDescription>
+              <CardTitle>Storage & System</CardTitle>
+              <CardDescription>Monitor usage and resources</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-3 rounded-lg bg-secondary/30 flex items-center gap-3">
                 <HardDrive className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Dung lượng đã dùng</p>
+                  <p className="text-sm text-muted-foreground">Storage Used</p>
                   <p className="text-base font-medium text-foreground">5.2 TB / 7 TB</p>
                 </div>
               </div>
@@ -129,10 +129,10 @@ export default function AdminDashboard() {
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" className="gap-2">
-                  <Clock3 className="w-4 h-4" /> Lịch cleanup
+                  <Clock3 className="w-4 h-4" /> Schedule Cleanup
                 </Button>
                 <Button variant="gradient" size="sm" className="gap-2">
-                  <Server className="w-4 h-4" /> Tăng dung lượng
+                  <Server className="w-4 h-4" /> Increase Storage
                 </Button>
               </div>
             </CardContent>

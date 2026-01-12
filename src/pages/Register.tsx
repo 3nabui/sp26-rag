@@ -48,10 +48,10 @@ export default function Register() {
           {/* Welcome Text */}
           <div className="mb-8">
             <h2 className="font-serif text-3xl font-bold text-foreground mb-2">
-              Tạo tài khoản mới
+              Create New Account
             </h2>
             <p className="text-muted-foreground">
-              Đăng ký để bắt đầu phân tích bản thảo với AI
+              Sign up to start analyzing your manuscript with AI
             </p>
           </div>
 
@@ -61,12 +61,12 @@ export default function Register() {
               <form onSubmit={handleRegister} className="space-y-4">
                 {/* Full name */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Họ và tên</label>
+                  <label className="text-sm font-medium text-foreground">Full Name</label>
                   <div className="relative">
                     <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       type="text"
-                      placeholder="Ví dụ: Nguyễn An"
+                      placeholder="e.g., John Doe"
                       className="pl-11"
                     />
                   </div>
@@ -87,12 +87,12 @@ export default function Register() {
 
                 {/* Password */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Mật khẩu</label>
+                  <label className="text-sm font-medium text-foreground">Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       type={showPassword ? 'text' : 'password'}
-                      placeholder="Ít nhất 8 ký tự"
+                      placeholder="At least 8 characters"
                       className="pl-11 pr-11"
                     />
                     <button
@@ -107,12 +107,12 @@ export default function Register() {
 
                 {/* Confirm Password */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Xác nhận mật khẩu</label>
+                  <label className="text-sm font-medium text-foreground">Confirm Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="Nhập lại mật khẩu"
+                      placeholder="Re-enter password"
                       className="pl-11 pr-11"
                     />
                     <button
@@ -137,7 +137,7 @@ export default function Register() {
                     <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   ) : (
                     <>
-                      Đăng ký
+                      Sign Up
                       <ArrowRight className="w-5 h-5" />
                     </>
                   )}
@@ -146,9 +146,9 @@ export default function Register() {
 
               {/* Already have account */}
               <p className="text-center text-sm text-muted-foreground mt-6">
-                Đã có tài khoản?{' '}
+                Already have an account?{' '}
                 <Link to="/login" className="text-primary font-medium hover:underline">
-                  Đăng nhập
+                  Sign in
                 </Link>
               </p>
             </CardContent>
@@ -180,26 +180,25 @@ export default function Register() {
           </div>
 
           <h3 className="font-serif text-3xl font-bold text-foreground mb-4">
-            Bắt đầu hành trình<br />phân tích truyện với AI
+            Start Your Journey<br />Analyzing Stories with AI
           </h3>
           <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-            Tạo tài khoản miễn phí để khám phá cách AI giúp bạn hiểu sâu hơn về nhịp độ,
-            cảm xúc và nhân vật trong tác phẩm của mình.
+            Create a free account to discover how AI helps you understand pacing,
+            emotions, and characters in your work more deeply.
           </p>
 
           {/* Quote */}
           <div className="glass rounded-xl p-6 text-left">
             <p className="text-foreground italic mb-3">
-              "Đăng ký chỉ mất vài giây, nhưng những insight từ AI có thể thay đổi cả cách
-              tôi viết truyện."
+              "Signing up takes just seconds, but the insights from AI can change the entire way I write stories."
             </p>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">NA</span>
+                <span className="text-sm font-medium text-primary">SA</span>
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Nguyễn Anh</p>
-                <p className="text-xs text-muted-foreground">Tác giả trẻ</p>
+                <p className="text-sm font-medium text-foreground">Sarah Anderson</p>
+                <p className="text-xs text-muted-foreground">Emerging Author</p>
               </div>
             </div>
           </div>

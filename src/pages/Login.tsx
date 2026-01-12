@@ -46,10 +46,10 @@ export default function Login() {
           {/* Welcome Text */}
           <div className="mb-8">
             <h2 className="font-serif text-3xl font-bold text-foreground mb-2">
-              Chào mừng trở lại
+              Welcome Back
             </h2>
             <p className="text-muted-foreground">
-              Đăng nhập để tiếp tục phân tích bản thảo của bạn
+              Sign in to continue analyzing your manuscript
             </p>
           </div>
 
@@ -74,9 +74,9 @@ export default function Login() {
                 {/* Password */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-foreground">Mật khẩu</label>
+                    <label className="text-sm font-medium text-foreground">Password</label>
                     <button type="button" className="text-sm text-primary hover:underline">
-                      Quên mật khẩu?
+                      Forgot password?
                     </button>
                   </div>
                   <div className="relative">
@@ -109,7 +109,7 @@ export default function Login() {
                     <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   ) : (
                     <>
-                      Đăng nhập
+                      Sign In
                       <ArrowRight className="w-5 h-5" />
                     </>
                   )}
@@ -122,7 +122,7 @@ export default function Login() {
                   <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Hoặc tiếp tục với</span>
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                 </div>
               </div>
 
@@ -147,9 +147,9 @@ export default function Login() {
 
               {/* Register Link */}
               <p className="text-center text-sm text-muted-foreground mt-6">
-                Chưa có tài khoản?{' '}
+                Don't have an account?{' '}
                 <Link to="/register" className="text-primary font-medium hover:underline">
-                  Đăng ký ngay
+                  Sign up now
                 </Link>
               </p>
             </CardContent>
@@ -181,24 +181,24 @@ export default function Login() {
           </div>
 
           <h3 className="font-serif text-3xl font-bold text-foreground mb-4">
-            Phân Tích Truyện<br />Thông Minh với AI
+            Smart Story<br />Analysis with AI
           </h3>
           <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-            Hệ thống RAG tiên tiến giúp bạn hiểu sâu hơn về nhịp độ, cảm xúc và nhân vật trong tác phẩm của mình.
+            Advanced RAG system helps you understand pacing, emotions, and characters in your work more deeply.
           </p>
 
           {/* Quote */}
           <div className="glass rounded-xl p-6 text-left">
             <p className="text-foreground italic mb-3">
-              "Mỗi câu chuyện đều có linh hồn riêng. AI giúp tôi nhìn thấy những điều tôi chưa từng thấy trong chính tác phẩm của mình."
+              "Every story has its own soul. AI helps me see things I never noticed in my own work."
             </p>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">TH</span>
+                <span className="text-sm font-medium text-primary">JD</span>
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Trần Hoàng</p>
-                <p className="text-xs text-muted-foreground">Tác giả best-seller</p>
+                <p className="text-sm font-medium text-foreground">John Doe</p>
+                <p className="text-xs text-muted-foreground">Bestselling Author</p>
               </div>
             </div>
           </div>

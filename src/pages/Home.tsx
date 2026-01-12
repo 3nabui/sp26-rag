@@ -18,75 +18,75 @@ import { motion } from 'framer-motion';
 const features = [
   {
     icon: Brain,
-    title: 'Phân Tích AI Thông Minh',
-    description: 'Công nghệ RAG tiên tiến giúp phân tích sâu bản thảo của bạn, từ cấu trúc đến phong cách viết.'
+    title: 'Smart AI Analysis',
+    description: 'Advanced RAG technology helps deeply analyze your manuscript, from structure to writing style.'
   },
   {
     icon: BarChart3,
-    title: 'Nhịp Độ & Cảm Xúc',
-    description: 'Theo dõi dòng chảy cảm xúc và nhịp độ câu chuyện qua từng chương một cách trực quan.'
+    title: 'Pacing & Emotion',
+    description: 'Track emotional flow and story pacing across chapters with visual insights.'
   },
   {
     icon: Users,
-    title: 'Bản Đồ Nhân Vật',
-    description: 'Khám phá mối quan hệ giữa các nhân vật và vai trò của họ trong câu chuyện.'
+    title: 'Character Map',
+    description: 'Discover relationships between characters and their roles in the story.'
   },
   {
     icon: MessageSquare,
-    title: 'Trợ Lý AI 24/7',
-    description: 'Hỏi đáp trực tiếp với AI về bản thảo, nhận gợi ý cải thiện ngay lập tức.'
+    title: '24/7 AI Assistant',
+    description: 'Ask questions directly to AI about your manuscript and get instant improvement suggestions.'
   }
 ];
 
 const steps = [
   {
     number: '01',
-    title: 'Tải Lên Bản Thảo',
-    description: 'Upload file TXT, DOCX hoặc PDF của bạn một cách dễ dàng.'
+    title: 'Upload Manuscript',
+    description: 'Easily upload your TXT, DOCX or PDF files.'
   },
   {
     number: '02',
-    title: 'AI Phân Tích',
-    description: 'Hệ thống RAG tự động phân tích mọi khía cạnh của tác phẩm.'
+    title: 'AI Analysis',
+    description: 'RAG system automatically analyzes every aspect of your work.'
   },
   {
     number: '03',
-    title: 'Xem Kết Quả',
-    description: 'Nhận báo cáo chi tiết với biểu đồ trực quan và insights.'
+    title: 'View Results',
+    description: 'Get detailed reports with visual charts and insights.'
   },
   {
     number: '04',
-    title: 'Cải Thiện',
-    description: 'Áp dụng gợi ý từ AI để nâng cao chất lượng tác phẩm.'
+    title: 'Improve',
+    description: 'Apply AI suggestions to enhance your work quality.'
   }
 ];
 
 const testimonials = [
   {
-    name: 'Nguyễn Minh Anh',
-    role: 'Tác giả tiểu thuyết',
-    content: 'StoryNest đã giúp tôi phát hiện những điểm yếu trong cấu trúc truyện mà tôi không nhận ra. Thật sự ấn tượng!',
-    avatar: 'MA'
+    name: 'Sarah Chen',
+    role: 'Novelist',
+    content: 'StoryNest helped me discover weaknesses in my story structure that I never noticed. Truly impressive!',
+    avatar: 'SC'
   },
   {
-    name: 'Trần Văn Hùng',
-    role: 'Nhà văn trẻ',
-    content: 'Công cụ phân tích nhân vật cực kỳ hữu ích. Tôi có thể thấy rõ mối quan hệ giữa các nhân vật và cải thiện chúng.',
-    avatar: 'VH'
+    name: 'Michael Torres',
+    role: 'Emerging Writer',
+    content: 'The character analysis tool is extremely useful. I can clearly see relationships between characters and improve them.',
+    avatar: 'MT'
   },
   {
-    name: 'Lê Thị Hương',
-    role: 'Biên tập viên',
-    content: 'Tiết kiệm rất nhiều thời gian biên tập. AI chatbot trả lời nhanh và chính xác về nội dung bản thảo.',
-    avatar: 'TH'
+    name: 'Emily Johnson',
+    role: 'Editor',
+    content: 'Saves so much editing time. The AI chatbot responds quickly and accurately about manuscript content.',
+    avatar: 'EJ'
   }
 ];
 
 const stats = [
-  { value: '10,000+', label: 'Bản thảo đã phân tích' },
-  { value: '5,000+', label: 'Tác giả tin dùng' },
-  { value: '98%', label: 'Hài lòng' },
-  { value: '24/7', label: 'Hỗ trợ AI' }
+  { value: '10,000+', label: 'Manuscripts Analyzed' },
+  { value: '5,000+', label: 'Trusted Authors' },
+  { value: '98%', label: 'Satisfaction Rate' },
+  { value: '24/7', label: 'AI Support' }
 ];
 
 export default function Home() {
@@ -106,23 +106,23 @@ export default function Home() {
           
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
-              Tính Năng
+              Features
             </a>
             <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
-              Cách Hoạt Động
+              How It Works
             </a>
             <a href="#testimonials" className="text-muted-foreground hover:text-foreground transition-colors">
-              Đánh Giá
+              Testimonials
             </a>
           </div>
 
           <div className="flex items-center gap-3">
             <Link to="/login">
-              <Button variant="ghost">Đăng Nhập</Button>
+              <Button variant="ghost">Sign In</Button>
             </Link>
             <Link to="/register">
               <Button className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white">
-                Bắt Đầu Miễn Phí
+                Get Started Free
               </Button>
             </Link>
           </div>
@@ -144,32 +144,32 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 mb-8">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-amber-500 font-medium">Công nghệ AI tiên tiến nhất</span>
+              <span className="text-sm text-amber-500 font-medium">Most Advanced AI Technology</span>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
-              Phân Tích Truyện
+              Analyze Stories
               <br />
               <span className="bg-gradient-to-r from-amber-500 to-teal-500 bg-clip-text text-transparent">
-                Với Sức Mạnh AI
+                With AI Power
               </span>
             </h1>
             
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-              Khám phá chiều sâu tác phẩm của bạn với công nghệ RAG. 
-              Phân tích nhịp độ, cảm xúc, nhân vật và nhận gợi ý cải thiện từ AI.
+              Discover the depth of your work with RAG technology. 
+              Analyze pacing, emotions, characters and receive improvement suggestions from AI.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/register">
                 <Button size="lg" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-8 py-6 text-lg">
-                  Bắt Đầu Ngay
+                  Get Started Now
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
               <a href="#how-it-works">
                 <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-border">
-                  Xem Demo
+                  View Demo
                 </Button>
               </a>
             </div>
@@ -199,10 +199,10 @@ export default function Home() {
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Tính Năng Nổi Bật
+              Key Features
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Tất cả công cụ bạn cần để nâng cao chất lượng tác phẩm
+              All the tools you need to enhance your work quality
             </p>
           </div>
 
@@ -239,10 +239,10 @@ export default function Home() {
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Cách Hoạt Động
+              How It Works
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Chỉ 4 bước đơn giản để phân tích bản thảo của bạn
+              Just 4 simple steps to analyze your manuscript
             </p>
           </div>
 
@@ -279,10 +279,10 @@ export default function Home() {
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Đánh Giá Từ Tác Giả
+              Author Testimonials
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Hàng nghìn tác giả đã tin dùng StoryNest
+              Thousands of authors trust StoryNest
             </p>
           </div>
 
@@ -330,15 +330,15 @@ export default function Home() {
             <CardContent className="p-12 md:p-16 text-center relative z-10">
               <Zap className="w-12 h-12 text-amber-500 mx-auto mb-6" />
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Sẵn Sàng Nâng Cao Tác Phẩm?
+                Ready to Elevate Your Work?
               </h2>
               <p className="text-slate-300 text-lg max-w-2xl mx-auto mb-8">
-                Bắt đầu miễn phí ngay hôm nay và khám phá sức mạnh của AI trong việc phân tích truyện.
+                Start free today and discover the power of AI in story analysis.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link to="/register">
                   <Button size="lg" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-8">
-                    Đăng Ký Miễn Phí
+                    Sign Up Free
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                 </Link>
@@ -346,15 +346,15 @@ export default function Home() {
               <div className="flex items-center justify-center gap-6 mt-8 text-slate-400 text-sm">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-teal-500" />
-                  Không cần thẻ tín dụng
+                  No credit card required
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-teal-500" />
-                  Dùng thử 14 ngày
+                  14-day free trial
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-teal-500" />
-                  Hủy bất kỳ lúc nào
+                  Cancel anytime
                 </div>
               </div>
             </CardContent>
@@ -375,9 +375,9 @@ export default function Home() {
               <span className="font-bold text-foreground">StoryNest</span>
             </div>
             <div className="flex items-center gap-8 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">Điều khoản</a>
-              <a href="#" className="hover:text-foreground transition-colors">Bảo mật</a>
-              <a href="#" className="hover:text-foreground transition-colors">Liên hệ</a>
+              <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+              <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
+              <a href="#" className="hover:text-foreground transition-colors">Contact</a>
             </div>
             <div className="text-sm text-muted-foreground">
               © 2024 StoryNest. All rights reserved.

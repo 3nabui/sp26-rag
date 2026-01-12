@@ -33,22 +33,22 @@ interface UploadingFile {
 function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
     completed: { 
-      label: 'Hoàn thành', 
+      label: 'Completed', 
       className: 'bg-success/10 text-success border-success/20',
       icon: <CheckCircle2 className="w-3 h-3" />
     },
     processing: { 
-      label: 'Đang xử lý', 
+      label: 'Processing', 
       className: 'bg-info/10 text-info border-info/20',
       icon: <Clock className="w-3 h-3 animate-spin" />
     },
     pending: { 
-      label: 'Chờ xử lý', 
+      label: 'Pending', 
       className: 'bg-warning/10 text-warning border-warning/20',
       icon: <Clock className="w-3 h-3" />
     },
     failed: { 
-      label: 'Lỗi', 
+      label: 'Failed', 
       className: 'bg-destructive/10 text-destructive border-destructive/20',
       icon: <AlertCircle className="w-3 h-3" />
     },
@@ -232,7 +232,7 @@ export default function UploadPage() {
   };
 
   return (
-    <DefaultLayout title="Upload Bản Thảo" role="author">
+    <DefaultLayout title="Upload Manuscript" role="author">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -256,7 +256,7 @@ export default function UploadPage() {
                 className="flex-1"
               >
                 <Edit3 className="w-4 h-4 mr-2" />
-                Soạn thảo trực tiếp
+                Direct Editor
               </Button>
             </div>
           </CardContent>
@@ -267,9 +267,9 @@ export default function UploadPage() {
             {/* Upload Zone */}
         <Card variant="elevated">
           <CardHeader>
-            <CardTitle>Upload bản thảo mới</CardTitle>
+            <CardTitle>Upload New Manuscript</CardTitle>
             <CardDescription>
-              Hỗ trợ các định dạng: TXT, DOCX, PDF (Tối đa 50MB)
+              Supported formats: TXT, DOCX, PDF (Max 50MB)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -301,10 +301,10 @@ export default function UploadPage() {
                 </div>
                 <div>
                   <p className="text-lg font-medium text-foreground mb-1">
-                    Kéo thả file vào đây
+                    Drag and drop files here
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    hoặc <span className="text-primary font-medium">nhấn để chọn file</span>
+                    or <span className="text-primary font-medium">click to select files</span>
                   </p>
                 </div>
               </div>
@@ -313,7 +313,7 @@ export default function UploadPage() {
             {/* Uploading Files */}
             {uploadingFiles.length > 0 && (
               <div className="mt-6 space-y-3">
-                <p className="text-sm font-medium text-muted-foreground">Đang tải lên</p>
+                <p className="text-sm font-medium text-muted-foreground">Uploading</p>
                 {uploadingFiles.map(file => (
                   <motion.div
                     key={file.id}
@@ -355,9 +355,9 @@ export default function UploadPage() {
         {/* Manuscripts List */}
         <Card variant="elevated">
           <CardHeader>
-            <CardTitle>Bản thảo của bạn</CardTitle>
+            <CardTitle>Your Manuscripts</CardTitle>
             <CardDescription>
-              Danh sách tất cả bản thảo đã upload
+              List of all uploaded manuscripts
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -365,12 +365,12 @@ export default function UploadPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Tên bản thảo</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Định dạng</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Kích thước</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Ngày upload</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Trạng thái</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Hành động</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Manuscript Name</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Format</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Size</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Upload Date</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -402,22 +402,22 @@ export default function UploadPage() {
                         {formatFileSize(manuscript.fileSize)}
                       </td>
                       <td className="py-4 px-4 text-sm text-muted-foreground">
-                        {new Date(manuscript.uploadedAt).toLocaleDateString('vi-VN')}
+                        {new Date(manuscript.uploadedAt).toLocaleDateString('en-US')}
                       </td>
                       <td className="py-4 px-4">
                         <StatusBadge status={manuscript.status} />
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="icon" title="Xem">
+                          <Button variant="ghost" size="icon" title="View">
                             <Eye className="w-4 h-4" />
                           </Button>
                           {manuscript.status === 'completed' && (
-                            <Button variant="ghost" size="icon" title="Phân tích">
+                            <Button variant="ghost" size="icon" title="Analyze">
                               <BarChart3 className="w-4 h-4" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="icon" className="text-destructive" title="Xóa">
+                          <Button variant="ghost" size="icon" className="text-destructive" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -437,9 +437,9 @@ export default function UploadPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Soạn thảo truyện</CardTitle>
+                    <CardTitle>Story Editor</CardTitle>
                     <CardDescription>
-                      Viết và chỉnh sửa truyện trực tiếp trên trình duyệt
+                      Write and edit stories directly in your browser
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
@@ -449,7 +449,7 @@ export default function UploadPage() {
                       onClick={createNewDraft}
                     >
                       <FilePlus className="w-4 h-4 mr-2" />
-                      File mới
+                      New File
                     </Button>
                     <Button
                       variant="default"
@@ -458,7 +458,7 @@ export default function UploadPage() {
                       disabled={!currentDraftName.trim()}
                     >
                       <Save className="w-4 h-4 mr-2" />
-                      Lưu
+                      Save
                     </Button>
                   </div>
                 </div>
@@ -467,13 +467,13 @@ export default function UploadPage() {
                 {/* File Name Input */}
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">
-                    Tên file
+                    File Name
                   </label>
                   <input
                     type="text"
                     value={currentDraftName}
                     onChange={(e) => setCurrentDraftName(e.target.value)}
-                    placeholder="Nhập tên file (ví dụ: Truyện của tôi)"
+                    placeholder="Enter file name (e.g., My Story)"
                     className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -481,16 +481,16 @@ export default function UploadPage() {
                 {/* Text Editor */}
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">
-                    Nội dung
+                    Content
                   </label>
                   <textarea
                     value={editorContent}
                     onChange={(e) => setEditorContent(e.target.value)}
-                    placeholder="Bắt đầu viết truyện của bạn ở đây..."
+                    placeholder="Start writing your story here..."
                     className="w-full h-96 px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono text-sm"
                   />
                   <div className="mt-2 text-xs text-muted-foreground text-right">
-                    {editorContent.length} ký tự
+                    {editorContent.length} characters
                   </div>
                 </div>
               </CardContent>
@@ -499,16 +499,16 @@ export default function UploadPage() {
             {/* Saved Drafts List */}
             <Card variant="elevated">
               <CardHeader>
-                <CardTitle>File đã lưu</CardTitle>
+                <CardTitle>Saved Files</CardTitle>
                 <CardDescription>
-                  Danh sách các file đã lưu, có thể mở lại để soạn thảo tiếp
+                  List of saved files, you can reopen them to continue editing
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {savedDrafts.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>Chưa có file nào được lưu</p>
+                    <p>No files saved yet</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -532,7 +532,7 @@ export default function UploadPage() {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-foreground truncate">{draft.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(draft.updatedAt).toLocaleString('vi-VN')} • {draft.content.length} ký tự
+                              {new Date(draft.updatedAt).toLocaleString('en-US')} • {draft.content.length} characters
                             </p>
                           </div>
                         </div>
@@ -541,7 +541,7 @@ export default function UploadPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => loadDraft(draft.id)}
-                            title="Mở file"
+                            title="Open file"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -550,7 +550,7 @@ export default function UploadPage() {
                             size="icon"
                             className="text-destructive"
                             onClick={() => deleteDraft(draft.id)}
-                            title="Xóa file"
+                            title="Delete file"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
