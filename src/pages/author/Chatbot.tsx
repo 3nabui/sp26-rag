@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockManuscripts, type ChatMessage, type Manuscript } from '@/utils/mockData';
+import { mockManuscripts, mockChapterContents, type ChatMessage, type Manuscript, type ChapterContent } from '@/utils/mockData';
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
@@ -112,6 +112,12 @@ export default function ChatbotPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const selectedManuscript = mockManuscripts.find(m => m.id.toString() === selectedManuscriptId);
+  const selectedChapterContent = selectedManuscriptId && selectedChapter
+    ? mockChapterContents.find(
+        c => c.manuscriptId.toString() === selectedManuscriptId && 
+        c.chapter.toString() === selectedChapter
+      )
+    : null;
   const isReadyToChat = selectedManuscriptId && selectedChapter;
 
   // Generate chapter options based on selected manuscript
@@ -182,75 +188,74 @@ export default function ChatbotPage() {
   return (
     <DefaultLayout title="Hỏi AI" role="author">
       <div className="h-[calc(100vh-8rem)] flex gap-6">
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
+        {/* Left Sidebar - Selection */}
+        <div className="w-80 space-y-4">
           {/* Selection Header */}
-          <Card variant="glass" className="mb-4">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Manuscript Select */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Select Story</label>
-                    <Select value={selectedManuscriptId} onValueChange={setSelectedManuscriptId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select story to analyze" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockManuscripts.map((manuscript) => (
-                          <SelectItem key={manuscript.id} value={manuscript.id.toString()}>
-                            {manuscript.title} (v{manuscript.version})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <Card variant="glass">
+            <CardHeader>
+              <CardTitle className="text-base">Select Story & Chapter</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Manuscript Select */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Select Story</label>
+                <Select value={selectedManuscriptId} onValueChange={setSelectedManuscriptId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select story to analyze" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mockManuscripts.map((manuscript) => (
+                      <SelectItem key={manuscript.id} value={manuscript.id.toString()}>
+                        {manuscript.title} (v{manuscript.version})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  {/* Chapter Select */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Select Chapter</label>
-                    <Select 
-                      value={selectedChapter} 
-                      onValueChange={setSelectedChapter}
-                      disabled={!selectedManuscriptId}
-                    >
-                      <SelectTrigger disabled={!selectedManuscriptId}>
-                        <SelectValue placeholder={selectedManuscriptId ? "Select chapter" : "Select story first"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {chapterOptions.map((chapter) => (
-                          <SelectItem key={chapter} value={chapter.toString()}>
-                            Chapter {chapter}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              {/* Chapter Select */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Select Chapter</label>
+                <Select 
+                  value={selectedChapter} 
+                  onValueChange={setSelectedChapter}
+                  disabled={!selectedManuscriptId}
+                >
+                  <SelectTrigger disabled={!selectedManuscriptId}>
+                    <SelectValue placeholder={selectedManuscriptId ? "Select chapter" : "Select story first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {chapterOptions.map((chapter) => (
+                      <SelectItem key={chapter} value={chapter.toString()}>
+                        Chapter {chapter}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                {/* Status Badge */}
-                <div className="flex items-center">
-                  {isReadyToChat ? (
-                    <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      Sẵn sàng
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
-                      <AlertCircle className="w-3 h-3 mr-1" />
-                      Not Selected
-                    </Badge>
-                  )}
-                </div>
+              {/* Status Badge */}
+              <div className="flex items-center justify-center pt-2">
+                {isReadyToChat ? (
+                  <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Sẵn sàng
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    Not Selected
+                  </Badge>
+                )}
               </div>
 
               {/* Selected Info */}
               {isReadyToChat && selectedManuscript && (
-                <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
                   <div className="flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-primary" />
                     <span className="text-sm font-medium text-foreground">
-                      Analyzing: <span className="text-primary">{selectedManuscript.title}</span> - Chapter {selectedChapter}
+                      <span className="text-primary">{selectedManuscript.title}</span> - Chapter {selectedChapter}
                     </span>
                   </div>
                 </div>
@@ -258,94 +263,7 @@ export default function ChatbotPage() {
             </CardContent>
           </Card>
 
-          {/* Messages */}
-          <Card variant="elevated" className="flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-              <div className="space-y-6">
-                {!isReadyToChat ? (
-                  <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                      <BookOpen className="w-8 h-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      Select Story and Chapter to Start
-                    </h3>
-                    <p className="text-sm text-muted-foreground max-w-md">
-                      Please select a specific story and chapter above so AI can analyze accurately and provide the most relevant answers.
-                    </p>
-                  </div>
-                ) : (
-                  <AnimatePresence>
-                    {messages.map((message) => (
-                      <MessageBubble key={message.id} message={message} />
-                    ))}
-                    {isTyping && <TypingIndicator />}
-                  </AnimatePresence>
-                )}
-              </div>
-            </ScrollArea>
-
-            {/* Suggested Questions */}
-            {isReadyToChat && (
-              <div className="p-4 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-2">Gợi ý câu hỏi:</p>
-                <div className="flex flex-wrap gap-2">
-                  {suggestedQuestions.map((question, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => handleSuggestedQuestion(question)}
-                    >
-                      {question}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Input Area */}
-            <div className="p-4 border-t border-border">
-              <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" className="shrink-0" disabled={!isReadyToChat}>
-                  <Paperclip className="w-5 h-5" />
-                </Button>
-                <div className="flex-1 relative">
-                  <Input
-                    placeholder={isReadyToChat ? `Ask about Chapter ${selectedChapter}...` : "Select story and chapter first"}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                    className="pr-12"
-                    disabled={!isReadyToChat}
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute right-1 top-1/2 -translate-y-1/2"
-                    disabled={!isReadyToChat}
-                  >
-                    <Mic className="w-5 h-5" />
-                  </Button>
-                </div>
-                <Button 
-                  variant="gradient" 
-                  size="icon" 
-                  className="shrink-0"
-                  onClick={handleSend}
-                  disabled={!inputValue.trim() || !isReadyToChat}
-                >
-                  <Send className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="w-80 space-y-4 hidden lg:block">
-          {/* Selected Manuscript Info */}
+          {/* Manuscript Info */}
           {selectedManuscript && (
             <Card variant="elevated">
               <CardHeader className="pb-3">
@@ -367,40 +285,10 @@ export default function ChatbotPage() {
                       </Badge>
                     </div>
                   </div>
-                  {selectedChapter && (
-                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-primary" />
-                        <span className="text-sm font-medium text-foreground">
-                          Analyzing: <span className="text-primary">Chapter {selectedChapter}</span>
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
           )}
-
-          {/* Tips */}
-          <Card variant="glass" className="gradient-border">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-1">AI Usage Tips</p>
-                  <p className="text-xs text-muted-foreground">
-                    {isReadyToChat 
-                      ? `Ask specific questions about Chapter ${selectedChapter} for the most detailed answers.`
-                      : 'Select a specific story and chapter so AI can analyze accurately.'
-                    }
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Quick Actions */}
           {isReadyToChat && (
@@ -438,6 +326,173 @@ export default function ChatbotPage() {
               </CardContent>
             </Card>
           )}
+        </div>
+
+        {/* Center - Chapter Content */}
+        <div className="flex-1 flex flex-col">
+          <Card variant="elevated" className="flex-1 flex flex-col overflow-hidden">
+            <CardHeader className="border-b border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">
+                    {selectedChapterContent ? (
+                      <>Chapter {selectedChapter}: {selectedChapterContent.title}</>
+                    ) : (
+                      'Chapter Content'
+                    )}
+                  </CardTitle>
+                  {selectedChapterContent && (
+                    <CardDescription className="mt-1">
+                      {selectedChapterContent.wordCount} words
+                    </CardDescription>
+                  )}
+                </div>
+                {isReadyToChat && (
+                  <Badge variant="outline" className="bg-info/10 text-info border-info/20">
+                    <BookOpen className="w-3 h-3 mr-1" />
+                    Analyzing
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <ScrollArea className="flex-1">
+              {!isReadyToChat ? (
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center p-8">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <BookOpen className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Select Story and Chapter
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Please select a story and chapter from the left panel to view the content here.
+                  </p>
+                </div>
+              ) : selectedChapterContent ? (
+                <div className="p-8 prose prose-invert max-w-none">
+                  <div className="text-foreground leading-relaxed font-serif">
+                    {selectedChapterContent.content.split('\n\n').map((paragraph, index) => (
+                      <p key={index} className="mb-4 text-base">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center p-8">
+                  <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mb-4">
+                    <AlertCircle className="w-8 h-8 text-warning" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Chapter Content Not Available
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    The content for this chapter is not available yet. Please select another chapter.
+                  </p>
+                </div>
+              )}
+            </ScrollArea>
+          </Card>
+        </div>
+
+        {/* Right Side - Chat Box */}
+        <div className="w-96 flex flex-col">
+          <Card variant="elevated" className="flex-1 flex flex-col overflow-hidden">
+            <CardHeader className="border-b border-border">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">AI Assistant</CardTitle>
+                  <CardDescription className="text-xs">
+                    {isReadyToChat ? `Analyzing Chapter ${selectedChapter}` : 'Select chapter to start'}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            {/* Messages */}
+            <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+              <div className="space-y-6">
+                {!isReadyToChat ? (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center">
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                      <Bot className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground max-w-xs">
+                      Select a story and chapter to start chatting with AI.
+                    </p>
+                  </div>
+                ) : (
+                  <AnimatePresence>
+                    {messages.map((message) => (
+                      <MessageBubble key={message.id} message={message} />
+                    ))}
+                    {isTyping && <TypingIndicator />}
+                  </AnimatePresence>
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Suggested Questions */}
+            {isReadyToChat && (
+              <div className="p-4 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">Sugession questions:</p>
+                <div className="overflow-x-auto scrollbar-hide">
+                  <div className="flex gap-2" style={{ width: 'max-content' }}>
+                    {suggestedQuestions.map((question, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs whitespace-nowrap shrink-0"
+                        onClick={() => handleSuggestedQuestion(question)}
+                      >
+                        {question}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Input Area */}
+            <div className="p-4 border-t border-border">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" className="shrink-0" disabled={!isReadyToChat}>
+                  <Paperclip className="w-5 h-5" />
+                </Button>
+                <div className="flex-1 relative">
+                  <Input
+                    placeholder={isReadyToChat ? `Ask about Chapter ${selectedChapter}...` : "Select chapter first"}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                    className="pr-12"
+                    disabled={!isReadyToChat}
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute right-1 top-1/2 -translate-y-1/2"
+                    disabled={!isReadyToChat}
+                  >
+                    <Mic className="w-5 h-5" />
+                  </Button>
+                </div>
+                <Button 
+                  variant="gradient" 
+                  size="icon" 
+                  className="shrink-0"
+                  onClick={handleSend}
+                  disabled={!inputValue.trim() || !isReadyToChat}
+                >
+                  <Send className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
     </DefaultLayout>

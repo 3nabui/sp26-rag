@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
+import { useSidebar } from './SidebarContext';
+import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   title?: string;
@@ -18,9 +20,13 @@ interface HeaderProps {
 
 export function Header({ title = 'Dashboard' }: HeaderProps) {
   const navigate = useNavigate();
+  const { isCollapsed } = useSidebar();
 
   return (
-    <header className="fixed top-0 left-64 right-0 z-30 h-16 bg-background/80 backdrop-blur-xl border-b border-border">
+    <header className={cn(
+      "fixed top-0 right-0 z-30 h-16 bg-background/80 backdrop-blur-xl border-b border-border transition-all duration-300 ease-in-out",
+      isCollapsed ? "left-20" : "left-64"
+    )}>
       <div className="flex items-center justify-between h-full px-6">
         {/* Title & Breadcrumb */}
         <div>

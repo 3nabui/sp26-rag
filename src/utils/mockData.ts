@@ -200,3 +200,72 @@ export const mockDashboardStats = {
     analysis: 25,
   },
 };
+
+// Mock chapter content
+export interface ChapterContent {
+  manuscriptId: number;
+  chapter: number;
+  title: string;
+  content: string;
+  wordCount: number;
+}
+
+export const mockChapterContents: ChapterContent[] = [
+  {
+    manuscriptId: 1,
+    chapter: 1,
+    title: 'Khởi Đầu',
+    content: `Ánh trăng lạnh lẽo chiếu xuống con đường làng vắng vẻ. Minh bước đi trong đêm tối, tiếng chân vang lên trên mặt đường đá. Không khí ẩm ướt của mùa thu khiến anh cảm thấy một nỗi buồn man mác.
+
+"Tại sao mọi thứ lại trở nên như thế này?" - Minh tự hỏi trong lòng. Anh nhớ lại những ngày tháng tươi đẹp khi còn nhỏ, khi cuộc sống đơn giản và hạnh phúc.
+
+Bỗng nhiên, một tiếng động lạ vang lên từ phía sau. Minh quay đầu lại nhưng không thấy gì. Có lẽ chỉ là gió thôi, anh tự trấn an mình. Nhưng cảm giác bất an vẫn cứ đeo bám.
+
+Anh tiếp tục bước đi, hướng về ngôi nhà cũ nơi anh đã lớn lên. Ngôi nhà đó giờ đã hoang vắng, không còn ai ở đó nữa. Nhưng đó là nơi duy nhất anh có thể quay về.`,
+    wordCount: 185
+  },
+  {
+    manuscriptId: 1,
+    chapter: 4,
+    title: 'Cuộc Đối Đầu',
+    content: `Minh chạy nhanh qua những con phố tối, tim đập thình thịch trong lồng ngực. Tiếng bước chân đuổi theo phía sau ngày càng gần. Anh biết mình không thể chạy mãi được.
+
+"Đứng lại!" - Một giọng nói quen thuộc vang lên.
+
+Minh quay đầu lại và thấy Hùng đang đứng đó, ánh mắt lạnh lùng nhìn chằm chằm vào anh. Không khí căng thẳng như sợi dây đàn sắp đứt.
+
+"Anh muốn gì?" - Minh hỏi, cố gắng giữ bình tĩnh.
+
+"Tôi muốn biết sự thật." - Hùng bước tới gần, nắm đấm siết chặt. "Tại sao anh lại làm vậy?"
+
+Minh lùi lại một bước. Anh biết cuộc đối đầu này không thể tránh khỏi. Nhưng anh không muốn đánh nhau với người bạn cũ của mình.
+
+"Tôi không có lựa chọn nào khác." - Minh nói, giọng run run.
+
+"Luôn luôn có lựa chọn!" - Hùng hét lên và lao tới.
+
+Hai người đàn ông va vào nhau trong đêm tối, những cú đấm vang lên như tiếng sấm. Minh cố gắng tự vệ nhưng Hùng mạnh hơn, hung dữ hơn. Mỗi cú đấm đều nhắm vào những điểm yếu.
+
+Minh ngã xuống đất, máu chảy từ môi. Anh nhìn lên bầu trời đầy sao và tự hỏi liệu đây có phải là kết thúc không.`,
+    wordCount: 245
+  },
+  {
+    manuscriptId: 1,
+    chapter: 8,
+    title: 'Bước Ngoặt',
+    content: `Sau cuộc đối đầu với Hùng, Minh nhận ra rằng mình cần phải thay đổi. Anh không thể tiếp tục sống trong sợ hãi và trốn tránh nữa.
+
+Ngày hôm sau, anh quyết định đến gặp Linh. Cô ấy là người duy nhất có thể hiểu được anh lúc này. Khi nhìn thấy cô, trái tim anh như muốn nhảy ra khỏi lồng ngực.
+
+"Linh, tôi cần nói chuyện với em." - Minh nói, giọng nghiêm túc.
+
+Linh nhìn anh với đôi mắt lo lắng. "Chuyện gì vậy? Anh trông có vẻ mệt mỏi."
+
+Minh kể cho cô nghe tất cả mọi thứ - về quá khứ, về những sai lầm, về nỗi sợ hãi đang đeo bám anh. Linh lắng nghe không ngắt lời, đôi mắt cô ánh lên sự thấu hiểu.
+
+"Anh không cần phải đối mặt với tất cả một mình." - Linh nói, nắm lấy tay anh. "Em sẽ ở bên cạnh anh."
+
+Trong khoảnh khắc đó, Minh cảm thấy một hy vọng mới. Có lẽ mọi thứ sẽ ổn thôi, miễn là anh không từ bỏ.`,
+    wordCount: 198
+  }
+];
