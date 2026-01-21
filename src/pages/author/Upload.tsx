@@ -139,9 +139,6 @@ function EditorToolbar({
   onBold, 
   onItalic,
   onUnderline,
-  onHeading1, 
-  onHeading2, 
-  onDivider,
   canUndo,
   canRedo
 }: {
@@ -150,9 +147,6 @@ function EditorToolbar({
   onBold: () => void;
   onItalic: () => void;
   onUnderline: () => void;
-  onHeading1: () => void;
-  onHeading2: () => void;
-  onDivider: () => void;
   canUndo: boolean;
   canRedo: boolean;
 }) {
@@ -206,38 +200,6 @@ function EditorToolbar({
       >
         <Underline className="w-4 h-4" />
       </Button>
-      <Separator orientation="vertical" className="h-6 mx-1" />
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onHeading1}
-        className="h-8 px-2 text-xs"
-        title="Chapter (H1)"
-      >
-        <Heading1 className="w-4 h-4 mr-1" />
-        Chapter
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onHeading2}
-        className="h-8 px-2 text-xs"
-        title="Scene (H2)"
-      >
-        <Heading2 className="w-4 h-4 mr-1" />
-        Scene
-      </Button>
-      <Separator orientation="vertical" className="h-6 mx-1" />
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onDivider}
-        className="h-8 px-2 text-xs"
-        title="Divider"
-      >
-        <Minus className="w-4 h-4 mr-1" />
-        Divider
-      </Button>
     </div>
   );
 }
@@ -248,7 +210,8 @@ function StorySidebar({
   onSelectChapter,
   onSelectStory,
   onCreateStory,
-  onImportFile
+  onImportFile,
+  onUpdateStoryTitle
 }: {
   stories: Story[];
   selectedChapterId: string | null;
@@ -256,9 +219,12 @@ function StorySidebar({
   onSelectStory: (storyId: string) => void;
   onCreateStory: () => void;
   onImportFile: () => void;
+  onUpdateStoryTitle: (storyId: string, newTitle: string) => void;
 }) {
   const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set());
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+  const [editingStoryTitle, setEditingStoryTitle] = useState('');
 
   const toggleStory = (storyId: string) => {
     setExpandedStories(prev => {
@@ -310,23 +276,80 @@ function StorySidebar({
       </div>
       <div className="flex-1 overflow-y-auto p-2">
         {stories.map((story) => (
-          <div key={story.id} className="mb-2">
+          <div key={story.id} className="mb-2 group">
             <div
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50 cursor-pointer"
-              onClick={() => {
-                toggleStory(story.id);
-                onSelectStory(story.id);
-              }}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50"
             >
-              {expandedStories.has(story.id) ? (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <div
+                className="flex items-center gap-2 flex-1 cursor-pointer"
+                onClick={() => {
+                  if (editingStoryId !== story.id) {
+                    toggleStory(story.id);
+                    onSelectStory(story.id);
+                  }
+                }}
+              >
+                {expandedStories.has(story.id) ? (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                )}
+                <BookOpen className="w-4 h-4 text-primary" />
+                {editingStoryId === story.id ? (
+                  <Input
+                    value={editingStoryTitle}
+                    onChange={(e) => setEditingStoryTitle(e.target.value)}
+                    onBlur={() => {
+                      if (editingStoryTitle.trim() && editingStoryTitle.trim() !== story.title) {
+                        onUpdateStoryTitle(story.id, editingStoryTitle.trim());
+                      }
+                      setEditingStoryId(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (editingStoryTitle.trim() && editingStoryTitle.trim() !== story.title) {
+                          onUpdateStoryTitle(story.id, editingStoryTitle.trim());
+                        }
+                        setEditingStoryId(null);
+                      }
+                      if (e.key === 'Escape') {
+                        setEditingStoryTitle(story.title);
+                        setEditingStoryId(null);
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="h-6 text-sm font-medium flex-1"
+                    autoFocus
+                  />
+                ) : (
+                  <span 
+                    className="text-sm font-medium text-foreground flex-1 truncate"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setEditingStoryId(story.id);
+                      setEditingStoryTitle(story.title);
+                    }}
+                  >
+                    {story.title}
+                  </span>
+                )}
+              </div>
+              {editingStoryId !== story.id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingStoryId(story.id);
+                    setEditingStoryTitle(story.title);
+                  }}
+                  title="Edit story title"
+                >
+                  <Edit3 className="w-3 h-3" />
+                </Button>
               )}
-              <BookOpen className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground flex-1 truncate">
-                {story.title}
-              </span>
             </div>
             {expandedStories.has(story.id) && (
               <div className="ml-6 mt-1 space-y-1">
@@ -947,7 +970,7 @@ export default function UploadPage() {
   // Editor states
   const [editorContent, setEditorContent] = useState('');
   const [currentChapterTitle, setCurrentChapterTitle] = useState('');
-  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   
   // Undo/Redo states
   const [history, setHistory] = useState<string[]>(['']);
@@ -996,6 +1019,22 @@ export default function UploadPage() {
   // Track if we're currently undoing/redoing to avoid saving to history
   const isUndoRedoRef = useRef(false);
 
+  // Sync editor content with innerHTML when content changes externally
+  useEffect(() => {
+    if (editorRef.current && isUndoRedoRef.current) {
+      editorRef.current.innerHTML = editorContent || '<p><br></p>';
+      isUndoRedoRef.current = false;
+    } else if (editorRef.current && editorRef.current.innerHTML !== editorContent && editorContent) {
+      // Only sync if content is different and not from user typing
+      const currentText = editorRef.current.textContent || '';
+      const newText = htmlToText(editorContent);
+      // Only update if it's a significant difference (not just from typing)
+      if (Math.abs(currentText.length - newText.length) > 10) {
+        editorRef.current.innerHTML = editorContent || '<p><br></p>';
+      }
+    }
+  }, [editorContent]);
+
   // Auto-save to history when content changes (debounced)
   useEffect(() => {
     if (isUndoRedoRef.current) {
@@ -1003,18 +1042,24 @@ export default function UploadPage() {
       return;
     }
 
+    if (!editorRef.current) return;
+
     const timeoutId = setTimeout(() => {
-      setHistory(prev => {
-        const currentIndex = historyIndex;
-        const newHistory = prev.slice(0, currentIndex + 1);
-        // Only add if content is different from last history entry
-        if (newHistory[newHistory.length - 1] !== editorContent) {
-          newHistory.push(editorContent);
-          setHistoryIndex(newHistory.length - 1);
-          return newHistory;
-        }
-        return prev;
-      });
+      const currentContent = editorRef.current?.innerHTML || '';
+      if (currentContent !== editorContent) {
+        setEditorContent(currentContent);
+        setHistory(prev => {
+          const currentIndex = historyIndex;
+          const newHistory = prev.slice(0, currentIndex + 1);
+          // Only add if content is different from last history entry
+          if (newHistory[newHistory.length - 1] !== currentContent) {
+            newHistory.push(currentContent);
+            setHistoryIndex(newHistory.length - 1);
+            return newHistory;
+          }
+          return prev;
+        });
+      }
     }, 1000); // Debounce 1 second
 
     return () => clearTimeout(timeoutId);
@@ -1358,10 +1403,19 @@ export default function UploadPage() {
             if (mainVersion) {
               setSelectedVersionId(mainVersion.id);
             }
-            setEditorContent(content);
+            // Convert plain text to HTML if needed
+            let htmlContent = content || '<p><br></p>';
+            if (content && !content.includes('<')) {
+              htmlContent = content.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
+            }
+            setEditorContent(htmlContent);
             // Reset history
-            setHistory([content]);
+            setHistory([htmlContent]);
             setHistoryIndex(0);
+            // Update editor HTML
+            if (editorRef.current) {
+              editorRef.current.innerHTML = htmlContent;
+            }
           }
         }
       } else if (file.name.toLowerCase().endsWith('.txt')) {
@@ -1406,10 +1460,20 @@ export default function UploadPage() {
           if (mainVersion) {
             setSelectedVersionId(mainVersion.id);
           }
-          setEditorContent(content);
+          // Convert plain text to HTML if needed
+          let htmlContent = content || '<p><br></p>';
+          // If content doesn't contain HTML tags, convert it
+          if (content && !content.includes('<')) {
+            htmlContent = content.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
+          }
+          setEditorContent(htmlContent);
           // Reset history
-          setHistory([content]);
+          setHistory([htmlContent]);
           setHistoryIndex(0);
+          // Update editor HTML
+          if (editorRef.current) {
+            editorRef.current.innerHTML = htmlContent;
+          }
         }
       }
       
@@ -1478,111 +1542,61 @@ export default function UploadPage() {
     });
   };
 
-  // Update editor content and save to history
-  const updateEditorContent = (newContent: string, cursorStart?: number, cursorEnd?: number) => {
-    isUndoRedoRef.current = true; // Prevent auto-save from useEffect
-    setEditorContent(newContent);
-    // Save immediately to history for formatting actions
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push(newContent);
-      setHistoryIndex(newHistory.length - 1);
-      return newHistory;
-    });
-    
-    // Restore cursor position
-    if (editorRef.current && cursorStart !== undefined) {
-      setTimeout(() => {
-        editorRef.current?.focus();
-        editorRef.current?.setSelectionRange(
-          cursorStart,
-          cursorEnd !== undefined ? cursorEnd : cursorStart
-        );
-        isUndoRedoRef.current = false;
-      }, 0);
-    } else {
-      isUndoRedoRef.current = false;
-    }
+  // Convert HTML to plain text for character count
+  const htmlToText = (html: string): string => {
+    if (!html) return '';
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
   };
 
   // Undo handler
   const handleUndo = () => {
-    if (historyIndex > 0) {
+    if (historyIndex > 0 && editorRef.current) {
       isUndoRedoRef.current = true;
       const newIndex = historyIndex - 1;
       setHistoryIndex(newIndex);
       setEditorContent(history[newIndex]);
-      if (editorRef.current) {
-        setTimeout(() => {
-          editorRef.current?.focus();
-        }, 0);
-      }
+      editorRef.current.innerHTML = history[newIndex];
+      setTimeout(() => {
+        editorRef.current?.focus();
+      }, 0);
     }
   };
 
   // Redo handler
   const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
+    if (historyIndex < history.length - 1 && editorRef.current) {
       isUndoRedoRef.current = true;
       const newIndex = historyIndex + 1;
       setHistoryIndex(newIndex);
       setEditorContent(history[newIndex]);
-      if (editorRef.current) {
-        setTimeout(() => {
-          editorRef.current?.focus();
-        }, 0);
-      }
+      editorRef.current.innerHTML = history[newIndex];
+      setTimeout(() => {
+        editorRef.current?.focus();
+      }, 0);
     }
   };
 
-  // Editor toolbar handlers
-  const wrapText = (before: string, after: string = before) => {
+  // Editor toolbar handlers using execCommand for rich text
+  const executeCommand = (command: string, value?: string) => {
     if (!editorRef.current) return;
-    const textarea = editorRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = editorContent.substring(start, end);
-    const beforeText = editorContent.substring(0, start);
-    const afterText = editorContent.substring(end);
     
-    let newText: string;
-    let newCursorStart: number;
-    let newCursorEnd: number;
-
-    if (selectedText) {
-      // If text is selected, wrap it
-      newText = beforeText + before + selectedText + after + afterText;
-      newCursorStart = start + before.length;
-      newCursorEnd = end + before.length;
-    } else {
-      // If no text selected, insert markers and place cursor between them
-      newText = beforeText + before + after + afterText;
-      newCursorStart = start + before.length;
-      newCursorEnd = newCursorStart;
-    }
-
-    updateEditorContent(newText, newCursorStart, newCursorEnd);
+    // Focus editor first
+    editorRef.current.focus();
+    
+    // Execute formatting command
+    document.execCommand(command, false, value);
+    
+    // Update content from innerHTML
+    const newContent = editorRef.current.innerHTML;
+    setEditorContent(newContent);
+    saveToHistory(newContent);
   };
 
-  const insertText = (text: string) => {
-    if (!editorRef.current) return;
-    const textarea = editorRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = editorContent.substring(start, end);
-    const before = editorContent.substring(0, start);
-    const after = editorContent.substring(end);
-    
-    const newText = before + text + selectedText + after;
-    updateEditorContent(newText, start + text.length, start + text.length + selectedText.length);
-  };
-
-  const handleBold = () => wrapText('**');
-  const handleItalic = () => wrapText('*');
-  const handleUnderline = () => wrapText('<u>', '</u>');
-  const handleHeading1 = () => insertText('# ');
-  const handleHeading2 = () => insertText('## ');
-  const handleDivider = () => insertText('\n---\n');
+  const handleBold = () => executeCommand('bold');
+  const handleItalic = () => executeCommand('italic');
+  const handleUnderline = () => executeCommand('underline');
 
   // Chapter/Version handlers
   const handleSelectChapter = (chapterId: string) => {
@@ -1595,16 +1609,68 @@ export default function UploadPage() {
       const mainVersion = chapter.versions.find(v => v.isMain) || chapter.versions[0];
       const content = mainVersion ? mainVersion.content : '';
       setSelectedVersionId(mainVersion?.id || null);
-      setEditorContent(content);
+      
+      // Convert plain text to HTML if needed
+      let htmlContent = content || '<p><br></p>';
+      if (content && !content.includes('<')) {
+        htmlContent = content.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
+      }
+      
+      setEditorContent(htmlContent);
       // Reset history when switching chapters
-      setHistory([content]);
+      setHistory([htmlContent]);
       setHistoryIndex(0);
       setCurrentChapterTitle(chapter.title);
+      
+      // Update editor HTML
+      if (editorRef.current) {
+        editorRef.current.innerHTML = htmlContent;
+      }
     }
+  };
+
+  // Update chapter title
+  const handleUpdateChapterTitle = (newTitle: string) => {
+    if (!selectedChapterId || !newTitle.trim()) return;
+
+    const newStories = stories.map(story => ({
+      ...story,
+      chapters: story.chapters.map(chapter => {
+        if (chapter.id === selectedChapterId) {
+          return {
+            ...chapter,
+            title: newTitle.trim()
+          };
+        }
+        return chapter;
+      }),
+      updatedAt: new Date().toISOString()
+    }));
+
+    saveStories(newStories);
+    setCurrentChapterTitle(newTitle.trim());
   };
 
   const handleSelectStory = (storyId: string) => {
     setSelectedStoryId(storyId);
+  };
+
+  // Update story title handler
+  const handleUpdateStoryTitle = (storyId: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+
+    const newStories = stories.map(story => {
+      if (story.id === storyId) {
+        return {
+          ...story,
+          title: newTitle.trim(),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return story;
+    });
+
+    saveStories(newStories);
   };
 
   const handleSaveChapter = () => {
@@ -1613,17 +1679,66 @@ export default function UploadPage() {
       return;
     }
 
-    if (!editorContent.trim()) {
+    if (!editorRef.current) return;
+
+    // Get current content from editor
+    const currentContent = editorRef.current.innerHTML.trim() || '';
+    
+    if (!currentContent || currentContent === '<p><br></p>' || currentContent === '<p></p>') {
       alert('Please enter some content');
       return;
     }
 
-    // Show version name dialog
+    // Check if content has changed compared to the current version
+    const selectedVersion = selectedChapter?.versions.find(v => v.id === selectedVersionId) || 
+                           selectedChapter?.versions.find(v => v.isMain) || 
+                           selectedChapter?.versions[0];
+    
+    if (selectedVersion) {
+      // Compare text content (ignore HTML formatting differences)
+      const getTextContent = (html: string) => {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return (div.textContent || div.innerText || '').trim();
+      };
+      
+      const currentText = getTextContent(currentContent);
+      const versionText = getTextContent(selectedVersion.content);
+      
+      // If text content hasn't changed, no need to save
+      if (currentText === versionText && currentText !== '') {
+        // No changes, just show message
+        alert('No changes to save');
+        return;
+      }
+    } else {
+      // No version exists yet - create first version automatically without dialog
+      if (!editorRef.current) return;
+      
+      const htmlContent = editorRef.current.innerHTML;
+      const content = htmlContent.trim() || '';
+      const textContent = htmlToText(content).trim();
+      
+      if (!textContent) {
+        alert('Please enter some content');
+        return;
+      }
+      
+      // Auto-save as first version with "Draft" label
+      handleSaveChapterWithVersion('Draft');
+      return;
+    }
+
+    // Content has changed, show version name dialog
     setVersionNameDialogOpen(true);
   };
 
   const handleSaveChapterWithVersion = (versionName: string) => {
-    if (!selectedChapterId) return;
+    if (!selectedChapterId || !editorRef.current) return;
+
+    // Get HTML content from editor
+    const htmlContent = editorRef.current.innerHTML;
+    const content = htmlContent.trim() || '';
 
     const newStories = stories.map(story => ({
       ...story,
@@ -1633,7 +1748,7 @@ export default function UploadPage() {
             id: Date.now().toString(),
             version: chapter.versions.length + 1,
             label: versionName,
-            content: editorContent,
+            content: content,
             createdAt: new Date().toISOString(),
             isMain: chapter.versions.length === 0
           };
@@ -1643,10 +1758,22 @@ export default function UploadPage() {
           };
         }
         return chapter;
-      })
+      }),
+      updatedAt: new Date().toISOString()
     }));
 
     saveStories(newStories);
+    setEditorContent(content);
+    
+    // Update selected version to the new one
+    const updatedChapter = newStories
+      .flatMap(s => s.chapters)
+      .find(c => c.id === selectedChapterId);
+    if (updatedChapter && updatedChapter.versions.length > 0) {
+      const latestVersion = updatedChapter.versions[updatedChapter.versions.length - 1];
+      setSelectedVersionId(latestVersion.id);
+    }
+    
     alert('Saved successfully!');
   };
 
@@ -1719,10 +1846,15 @@ export default function UploadPage() {
     setSelectedStoryId(newStory.id);
     setSelectedChapterId(chapterId);
     setCurrentChapterTitle('Chapter 1');
-    setEditorContent('');
+    const emptyContent = '<p><br></p>';
+    setEditorContent(emptyContent);
     // Reset history
-    setHistory(['']);
+    setHistory([emptyContent]);
     setHistoryIndex(0);
+    // Update editor HTML
+    if (editorRef.current) {
+      editorRef.current.innerHTML = emptyContent;
+    }
     setMode('editor');
   };
 
@@ -1747,7 +1879,19 @@ export default function UploadPage() {
     const version = selectedChapter?.versions.find(v => v.id === versionId);
     if (version) {
       setSelectedVersionId(versionId);
-      setEditorContent(version.content);
+      // Convert plain text to HTML if needed
+      let htmlContent = version.content || '<p><br></p>';
+      if (version.content && !version.content.includes('<')) {
+        htmlContent = version.content.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
+      }
+      setEditorContent(htmlContent);
+      // Reset history
+      setHistory([htmlContent]);
+      setHistoryIndex(0);
+      // Update editor HTML
+      if (editorRef.current) {
+        editorRef.current.innerHTML = htmlContent;
+      }
       setVersionManagerOpen(false);
     }
   };
@@ -1986,6 +2130,7 @@ export default function UploadPage() {
                 onSelectStory={handleSelectStory}
                 onCreateStory={handleCreateStory}
                 onImportFile={handleImportFromSidebar}
+                onUpdateStoryTitle={handleUpdateStoryTitle}
               />
 
               {/* Editor Area */}
@@ -2033,6 +2178,33 @@ export default function UploadPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col p-0">
+                    {/* Chapter Title Editor */}
+                    {selectedChapter && (
+                      <div className="px-4 pt-4 pb-2 border-b border-border">
+                        <Input
+                          value={currentChapterTitle}
+                          onChange={(e) => setCurrentChapterTitle(e.target.value)}
+                          onBlur={(e) => {
+                            if (e.target.value.trim() && e.target.value.trim() !== selectedChapter.title) {
+                              handleUpdateChapterTitle(e.target.value.trim());
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.currentTarget.blur();
+                            }
+                            if (e.key === 'Escape') {
+                              setCurrentChapterTitle(selectedChapter.title);
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          placeholder="Chapter title..."
+                          className="text-2xl font-bold border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-2 h-auto font-serif"
+                        />
+                      </div>
+                    )}
+
                     {/* Editor Toolbar */}
                     <EditorToolbar
                       onUndo={handleUndo}
@@ -2040,21 +2212,27 @@ export default function UploadPage() {
                       onBold={handleBold}
                       onItalic={handleItalic}
                       onUnderline={handleUnderline}
-                      onHeading1={handleHeading1}
-                      onHeading2={handleHeading2}
-                      onDivider={handleDivider}
                       canUndo={historyIndex > 0}
                       canRedo={historyIndex < history.length - 1}
                     />
 
-                    {/* Text Editor */}
-                    <textarea
+                    {/* Rich Text Editor */}
+                    <div
                       ref={editorRef}
-                      value={editorContent}
-                      onChange={(e) => {
-                        setEditorContent(e.target.value);
+                      contentEditable
+                      suppressContentEditableWarning
+                      onInput={(e) => {
+                        if (!isUndoRedoRef.current) {
+                          const newContent = e.currentTarget.innerHTML;
+                          setEditorContent(newContent);
+                        }
                       }}
                       onKeyDown={(e) => {
+                        // Handle Ctrl+S for save
+                        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                          e.preventDefault();
+                          handleSaveChapter();
+                        }
                         // Handle Ctrl+Z for undo
                         if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
                           e.preventDefault();
@@ -2067,11 +2245,46 @@ export default function UploadPage() {
                           handleRedo();
                         }
                       }}
-                      placeholder="Select a chapter from sidebar or start writing a new story..."
-                      className="flex-1 w-full px-4 py-3 border-0 rounded-b-lg bg-background text-foreground focus:outline-none resize-none font-mono text-sm"
+                      onPaste={(e) => {
+                        // Handle paste to preserve formatting
+                        e.preventDefault();
+                        const text = e.clipboardData.getData('text/plain');
+                        document.execCommand('insertText', false, text);
+                      }}
+                      className="flex-1 w-full px-4 py-3 border-0 rounded-b-lg bg-background text-foreground focus:outline-none resize-none text-sm min-h-[200px] overflow-y-auto"
+                      style={{ 
+                        minHeight: '200px',
+                        outline: 'none'
+                      }}
+                      data-placeholder="Select a chapter from sidebar or start writing a new story..."
                     />
+                    <style>{`
+                      [contenteditable][data-placeholder]:empty:before {
+                        content: attr(data-placeholder);
+                        color: hsl(var(--muted-foreground));
+                        pointer-events: none;
+                      }
+                      [contenteditable] h1 {
+                        font-size: 1.5rem;
+                        font-weight: bold;
+                        margin: 1rem 0;
+                      }
+                      [contenteditable] h2 {
+                        font-size: 1.25rem;
+                        font-weight: bold;
+                        margin: 0.75rem 0;
+                      }
+                      [contenteditable] p {
+                        margin: 0.5rem 0;
+                      }
+                      [contenteditable] hr {
+                        margin: 1rem 0;
+                        border: none;
+                        border-top: 1px solid hsl(var(--border));
+                      }
+                    `}</style>
                     <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground text-right">
-                      {editorContent.length} characters
+                      {editorRef.current ? htmlToText(editorRef.current.innerHTML).length : htmlToText(editorContent).length} characters
                     </div>
                   </CardContent>
                 </Card>
