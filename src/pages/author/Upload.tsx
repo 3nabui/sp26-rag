@@ -26,7 +26,10 @@ import {
   GitCompare,
   Star,
   Copy,
-  Plus
+  Plus,
+  Undo,
+  Redo,
+  Underline
 } from 'lucide-react';
 import { DefaultLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -131,20 +134,45 @@ const mockStories: Story[] = [
 const STORAGE_KEY = 'storynest_stories';
 
 function EditorToolbar({ 
+  onUndo,
+  onRedo,
   onBold, 
-  onItalic, 
-  onHeading1, 
-  onHeading2, 
-  onDivider 
+  onItalic,
+  onUnderline,
+  canUndo,
+  canRedo
 }: {
+  onUndo: () => void;
+  onRedo: () => void;
   onBold: () => void;
   onItalic: () => void;
-  onHeading1: () => void;
-  onHeading2: () => void;
-  onDivider: () => void;
+  onUnderline: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }) {
   return (
     <div className="flex items-center gap-1 p-2 border-b border-border bg-secondary/30 rounded-t-lg">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onUndo}
+        disabled={!canUndo}
+        className="h-8 w-8 p-0"
+        title="Undo"
+      >
+        <Undo className="w-4 h-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onRedo}
+        disabled={!canRedo}
+        className="h-8 w-8 p-0"
+        title="Redo"
+      >
+        <Redo className="w-4 h-4" />
+      </Button>
+      <Separator orientation="vertical" className="h-6 mx-1" />
       <Button
         variant="ghost"
         size="sm"
@@ -163,37 +191,14 @@ function EditorToolbar({
       >
         <Italic className="w-4 h-4" />
       </Button>
-      <Separator orientation="vertical" className="h-6 mx-1" />
       <Button
         variant="ghost"
         size="sm"
-        onClick={onHeading1}
-        className="h-8 px-2 text-xs"
-        title="Chương (H1)"
+        onClick={onUnderline}
+        className="h-8 w-8 p-0"
+        title="Underline"
       >
-        <Heading1 className="w-4 h-4 mr-1" />
-        Chương
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onHeading2}
-        className="h-8 px-2 text-xs"
-        title="Cảnh (H2)"
-      >
-        <Heading2 className="w-4 h-4 mr-1" />
-        Cảnh
-      </Button>
-      <Separator orientation="vertical" className="h-6 mx-1" />
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onDivider}
-        className="h-8 px-2 text-xs"
-        title="Divider"
-      >
-        <Minus className="w-4 h-4 mr-1" />
-        Divider
+        <Underline className="w-4 h-4" />
       </Button>
     </div>
   );
@@ -203,15 +208,23 @@ function StorySidebar({
   stories, 
   selectedChapterId, 
   onSelectChapter,
-  onSelectStory 
+  onSelectStory,
+  onCreateStory,
+  onImportFile,
+  onUpdateStoryTitle
 }: {
   stories: Story[];
   selectedChapterId: string | null;
   onSelectChapter: (chapterId: string) => void;
   onSelectStory: (storyId: string) => void;
+  onCreateStory: () => void;
+  onImportFile: () => void;
+  onUpdateStoryTitle: (storyId: string, newTitle: string) => void;
 }) {
-  const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set(['1']));
+  const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set());
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+  const [editingStoryTitle, setEditingStoryTitle] = useState('');
 
   const toggleStory = (storyId: string) => {
     setExpandedStories(prev => {
@@ -238,29 +251,105 @@ function StorySidebar({
   };
 
   return (
-    <div className="w-64 border-r border-border bg-secondary/20 h-full overflow-y-auto">
+    <div className="w-64 border-r border-border bg-secondary/20 h-full overflow-y-auto flex flex-col">
       <div className="p-4 border-b border-border">
-        <h3 className="font-semibold text-sm text-foreground">Truyện</h3>
+        <h3 className="font-semibold text-sm text-foreground mb-3">Stories</h3>
+        <div className="flex gap-2">
+          <Button
+            onClick={onCreateStory}
+            className="flex-1 bg-primary hover:bg-primary/90"
+            size="sm"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            New
+          </Button>
+          <Button
+            onClick={onImportFile}
+            variant="outline"
+            size="sm"
+            className="flex-1"
+          >
+            <UploadIcon className="w-4 h-4 mr-1" />
+            Import
+          </Button>
+        </div>
       </div>
-      <div className="p-2">
+      <div className="flex-1 overflow-y-auto p-2">
         {stories.map((story) => (
-          <div key={story.id} className="mb-2">
+          <div key={story.id} className="mb-2 group">
             <div
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50 cursor-pointer"
-              onClick={() => {
-                toggleStory(story.id);
-                onSelectStory(story.id);
-              }}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50"
             >
-              {expandedStories.has(story.id) ? (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <div
+                className="flex items-center gap-2 flex-1 cursor-pointer"
+                onClick={() => {
+                  if (editingStoryId !== story.id) {
+                    toggleStory(story.id);
+                    onSelectStory(story.id);
+                  }
+                }}
+              >
+                {expandedStories.has(story.id) ? (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                )}
+                <BookOpen className="w-4 h-4 text-primary" />
+                {editingStoryId === story.id ? (
+                  <Input
+                    value={editingStoryTitle}
+                    onChange={(e) => setEditingStoryTitle(e.target.value)}
+                    onBlur={() => {
+                      if (editingStoryTitle.trim() && editingStoryTitle.trim() !== story.title) {
+                        onUpdateStoryTitle(story.id, editingStoryTitle.trim());
+                      }
+                      setEditingStoryId(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (editingStoryTitle.trim() && editingStoryTitle.trim() !== story.title) {
+                          onUpdateStoryTitle(story.id, editingStoryTitle.trim());
+                        }
+                        setEditingStoryId(null);
+                      }
+                      if (e.key === 'Escape') {
+                        setEditingStoryTitle(story.title);
+                        setEditingStoryId(null);
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="h-6 text-sm font-medium flex-1"
+                    autoFocus
+                  />
+                ) : (
+                  <span 
+                    className="text-sm font-medium text-foreground flex-1 truncate"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setEditingStoryId(story.id);
+                      setEditingStoryTitle(story.title);
+                    }}
+                  >
+                    {story.title}
+                  </span>
+                )}
+              </div>
+              {editingStoryId !== story.id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingStoryId(story.id);
+                    setEditingStoryTitle(story.title);
+                  }}
+                  title="Edit story title"
+                >
+                  <Edit3 className="w-3 h-3" />
+                </Button>
               )}
-              <BookOpen className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground flex-1 truncate">
-                {story.title}
-              </span>
             </div>
             {expandedStories.has(story.id) && (
               <div className="ml-6 mt-1 space-y-1">
@@ -342,7 +431,7 @@ function VersionManagerModal({
         <DialogHeader>
           <DialogTitle>{chapter.title}</DialogTitle>
           <DialogDescription>
-            Quản lý các phiên bản của chương này
+            Manage versions of this chapter
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 mt-4">
@@ -451,19 +540,19 @@ function ImportDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Nhập thông tin truyện</DialogTitle>
+          <DialogTitle>Enter Story Information</DialogTitle>
           <DialogDescription>
-            Đặt tên cho truyện và version cho file: {fileName}
+            Set name for story and version for file: {fileName}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="story-name">Tên truyện</Label>
+            <Label htmlFor="story-name">Story Name</Label>
             <Input
               id="story-name"
               value={storyName}
               onChange={(e) => setStoryName(e.target.value)}
-              placeholder="Nhập tên truyện"
+              placeholder="Enter story name"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -473,24 +562,216 @@ function ImportDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="version-label">Tên version (áp dụng cho tất cả chương)</Label>
+            <Label htmlFor="version-label">Version Name (applies to all chapters)</Label>
             <Input
               id="version-label"
               value={versionLabel}
               onChange={(e) => setVersionLabel(e.target.value)}
-              placeholder="Ví dụ: Draft, First Draft, Imported..."
+              placeholder="Example: Draft, First Draft, Imported..."
             />
             <p className="text-xs text-muted-foreground">
-              Tên version này sẽ được áp dụng cho tất cả các chương trong truyện
+              This version name will be applied to all chapters in the story
             </p>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Hủy
+            Cancel
           </Button>
           <Button onClick={handleConfirm} disabled={!storyName.trim()}>
-            Xác nhận
+            Confirm
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Version Name Dialog Component
+function VersionNameDialog({
+  isOpen,
+  onClose,
+  onConfirm
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (versionName: string) => void;
+}) {
+  const [versionName, setVersionName] = useState('Draft');
+
+  useEffect(() => {
+    if (isOpen) {
+      setVersionName('Draft');
+    }
+  }, [isOpen]);
+
+  const handleConfirm = () => {
+    if (versionName.trim()) {
+      onConfirm(versionName.trim());
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Enter Version Name</DialogTitle>
+          <DialogDescription>
+            Enter a name for this version
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="version-name">Version Name</Label>
+            <Input
+              id="version-name"
+              value={versionName}
+              onChange={(e) => setVersionName(e.target.value)}
+              placeholder="Example: Draft, First Draft, Revised..."
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleConfirm();
+                }
+              }}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm} disabled={!versionName.trim()}>
+            Confirm
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Create Story Dialog Component
+function CreateStoryDialog({
+  isOpen,
+  onClose,
+  onConfirm
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (storyTitle: string) => void;
+}) {
+  const [storyTitle, setStoryTitle] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setStoryTitle('');
+    }
+  }, [isOpen]);
+
+  const handleConfirm = () => {
+    if (storyTitle.trim()) {
+      onConfirm(storyTitle.trim());
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create New Story</DialogTitle>
+          <DialogDescription>
+            Enter a title for your new story
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="story-title">Story Title</Label>
+            <Input
+              id="story-title"
+              value={storyTitle}
+              onChange={(e) => setStoryTitle(e.target.value)}
+              placeholder="Example: My First Story..."
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleConfirm();
+                }
+              }}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm} disabled={!storyTitle.trim()}>
+            Create
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Create Chapter Dialog Component
+function CreateChapterDialog({
+  isOpen,
+  onClose,
+  onConfirm
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (chapterTitle: string) => void;
+}) {
+  const [chapterTitle, setChapterTitle] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setChapterTitle('');
+    }
+  }, [isOpen]);
+
+  const handleConfirm = () => {
+    if (chapterTitle.trim()) {
+      onConfirm(chapterTitle.trim());
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create New Chapter</DialogTitle>
+          <DialogDescription>
+            Enter a title for the new chapter
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="chapter-title">Chapter Title</Label>
+            <Input
+              id="chapter-title"
+              value={chapterTitle}
+              onChange={(e) => setChapterTitle(e.target.value)}
+              placeholder="Example: Chapter 1, Chapter 2 - Title..."
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleConfirm();
+                }
+              }}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm} disabled={!chapterTitle.trim()}>
+            Create
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -550,7 +831,7 @@ function CompareVersionView({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>So sánh Version</DialogTitle>
+          <DialogTitle>Compare Version</DialogTitle>
           <DialogDescription>
             v{version1.version} vs v{version2.version}
           </DialogDescription>
@@ -659,15 +940,15 @@ function CompareVersionView({
 
         <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-border">
           <Button variant="outline" onClick={onClose}>
-            Đóng
+            Close
           </Button>
           <Button variant="outline" onClick={() => onSetMain(version2.id)}>
             <Star className="w-4 h-4 mr-2" />
-            Chọn version này làm bản chính
+            Set this version as main
           </Button>
           <Button onClick={onCreateNew}>
             <Copy className="w-4 h-4 mr-2" />
-            Tạo version mới từ kết quả so sánh
+            Create new version from comparison
           </Button>
         </div>
       </DialogContent>
@@ -689,7 +970,11 @@ export default function UploadPage() {
   // Editor states
   const [editorContent, setEditorContent] = useState('');
   const [currentChapterTitle, setCurrentChapterTitle] = useState('');
-  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  
+  // Undo/Redo states
+  const [history, setHistory] = useState<string[]>(['']);
+  const [historyIndex, setHistoryIndex] = useState(0);
   
   // Modals
   const [versionManagerOpen, setVersionManagerOpen] = useState(false);
@@ -700,6 +985,15 @@ export default function UploadPage() {
   // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<{ file: File; fileId: string; progressInterval: NodeJS.Timeout } | null>(null);
+  
+  // Version name dialog state
+  const [versionNameDialogOpen, setVersionNameDialogOpen] = useState(false);
+  
+  // Create chapter dialog state
+  const [createChapterDialogOpen, setCreateChapterDialogOpen] = useState(false);
+  
+  // Create story dialog state
+  const [createStoryDialogOpen, setCreateStoryDialogOpen] = useState(false);
 
   // Get selected chapter
   const selectedChapter = stories
@@ -721,6 +1015,56 @@ export default function UploadPage() {
       }
     }
   }, []);
+
+  // Track if we're currently undoing/redoing to avoid saving to history
+  const isUndoRedoRef = useRef(false);
+
+  // Sync editor content with innerHTML when content changes externally
+  useEffect(() => {
+    if (editorRef.current && isUndoRedoRef.current) {
+      editorRef.current.innerHTML = editorContent || '<p><br></p>';
+      isUndoRedoRef.current = false;
+    } else if (editorRef.current && editorRef.current.innerHTML !== editorContent && editorContent) {
+      // Only sync if content is different and not from user typing
+      const currentText = editorRef.current.textContent || '';
+      const newText = htmlToText(editorContent);
+      // Only update if it's a significant difference (not just from typing)
+      if (Math.abs(currentText.length - newText.length) > 10) {
+        editorRef.current.innerHTML = editorContent || '<p><br></p>';
+      }
+    }
+  }, [editorContent]);
+
+  // Auto-save to history when content changes (debounced)
+  useEffect(() => {
+    if (isUndoRedoRef.current) {
+      isUndoRedoRef.current = false;
+      return;
+    }
+
+    if (!editorRef.current) return;
+
+    const timeoutId = setTimeout(() => {
+      const currentContent = editorRef.current?.innerHTML || '';
+      if (currentContent !== editorContent) {
+        setEditorContent(currentContent);
+        setHistory(prev => {
+          const currentIndex = historyIndex;
+          const newHistory = prev.slice(0, currentIndex + 1);
+          // Only add if content is different from last history entry
+          if (newHistory[newHistory.length - 1] !== currentContent) {
+            newHistory.push(currentContent);
+            setHistoryIndex(newHistory.length - 1);
+            return newHistory;
+          }
+          return prev;
+        });
+      }
+    }, 1000); // Debounce 1 second
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorContent]);
 
   // Save stories to localStorage
   const saveStories = (newStories: Story[]) => {
@@ -839,10 +1183,10 @@ export default function UploadPage() {
               isChapterHeader = true;
               if (match[2]) {
                 chapterNumber = parseInt(match[2], 10);
-                chapterTitle = match[3]?.trim() || `Chương ${chapterNumber}`;
+                chapterTitle = match[3]?.trim() || `Chapter ${chapterNumber}`;
               } else if (match[1] && !isNaN(parseInt(match[1], 10))) {
                 chapterNumber = parseInt(match[1], 10);
-                chapterTitle = match[2]?.trim() || `Chương ${chapterNumber}`;
+                chapterTitle = match[2]?.trim() || `Chapter ${chapterNumber}`;
               } else {
                 chapterNumber = chapterOrder + 1;
                 chapterTitle = text;
@@ -860,10 +1204,10 @@ export default function UploadPage() {
               isChapterHeader = true;
               if (match[2]) {
                 chapterNumber = parseInt(match[2], 10);
-                chapterTitle = match[3]?.trim() || `Chương ${chapterNumber}`;
+                chapterTitle = match[3]?.trim() || `Chapter ${chapterNumber}`;
               } else if (match[1] && !isNaN(parseInt(match[1], 10))) {
                 chapterNumber = parseInt(match[1], 10);
-                chapterTitle = match[2]?.trim() || `Chương ${chapterNumber}`;
+                chapterTitle = match[2]?.trim() || `Chapter ${chapterNumber}`;
               } else {
                 chapterNumber = chapterOrder + 1;
                 chapterTitle = text;
@@ -894,7 +1238,7 @@ export default function UploadPage() {
           
           // Start new chapter
           currentChapter = {
-            title: chapterTitle || `Chương ${chapterNumber || chapterOrder + 1}`,
+            title: chapterTitle || `Chapter ${chapterNumber || chapterOrder + 1}`,
             content: []
           };
         } else {
@@ -902,7 +1246,7 @@ export default function UploadPage() {
           if (!currentChapter) {
             chapterOrder = 1;
             currentChapter = {
-              title: 'Chương 1',
+              title: 'Chapter 1',
               content: []
             };
           }
@@ -937,7 +1281,7 @@ export default function UploadPage() {
         const allText = elements.map(e => e.text).join('\n\n');
         chapters.push({
           id: `${Date.now()}-1`,
-          title: 'Chương 1',
+          title: 'Chapter 1',
           order: 1,
           versions: [{
             id: `${Date.now()}-1-v1`,
@@ -1044,13 +1388,34 @@ export default function UploadPage() {
           });
           
           // Show success message
-          alert(`Đã import thành công!\nTruyện: ${newStory.title}\nSố chương: ${newStory.chapters.length}`);
+          alert(`Import successful!\nStory: ${newStory.title}\nChapters: ${newStory.chapters.length}`);
           
           // Switch to editor mode and select the new story
           setMode('editor');
           setSelectedStoryId(newStory.id);
+          // Default to first chapter
           if (newStory.chapters.length > 0) {
-            setSelectedChapterId(newStory.chapters[0].id);
+            const firstChapter = newStory.chapters[0];
+            setSelectedChapterId(firstChapter.id);
+            setCurrentChapterTitle(firstChapter.title);
+            const mainVersion = firstChapter.versions.find(v => v.isMain) || firstChapter.versions[0];
+            const content = mainVersion ? mainVersion.content : '';
+            if (mainVersion) {
+              setSelectedVersionId(mainVersion.id);
+            }
+            // Convert plain text to HTML if needed
+            let htmlContent = content || '<p><br></p>';
+            if (content && !content.includes('<')) {
+              htmlContent = content.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
+            }
+            setEditorContent(htmlContent);
+            // Reset history
+            setHistory([htmlContent]);
+            setHistoryIndex(0);
+            // Update editor HTML
+            if (editorRef.current) {
+              editorRef.current.innerHTML = htmlContent;
+            }
           }
         }
       } else if (file.name.toLowerCase().endsWith('.txt')) {
@@ -1061,7 +1426,7 @@ export default function UploadPage() {
           title: storyName,
           chapters: [{
             id: `${Date.now()}-1`,
-            title: 'Chương 1',
+            title: 'Chapter 1',
             order: 1,
             versions: [{
               id: `${Date.now()}-1-v1`,
@@ -1082,10 +1447,34 @@ export default function UploadPage() {
           return updated;
         });
         
-        alert(`Đã import thành công!\nTruyện: ${newStory.title}`);
+        alert(`Import successful!\nStory: ${newStory.title}`);
         setMode('editor');
         setSelectedStoryId(newStory.id);
-        setSelectedChapterId(newStory.chapters[0].id);
+        // Default to first chapter
+        if (newStory.chapters.length > 0) {
+          const firstChapter = newStory.chapters[0];
+          setSelectedChapterId(firstChapter.id);
+          setCurrentChapterTitle(firstChapter.title);
+          const mainVersion = firstChapter.versions.find(v => v.isMain) || firstChapter.versions[0];
+          const content = mainVersion ? mainVersion.content : '';
+          if (mainVersion) {
+            setSelectedVersionId(mainVersion.id);
+          }
+          // Convert plain text to HTML if needed
+          let htmlContent = content || '<p><br></p>';
+          // If content doesn't contain HTML tags, convert it
+          if (content && !content.includes('<')) {
+            htmlContent = content.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
+          }
+          setEditorContent(htmlContent);
+          // Reset history
+          setHistory([htmlContent]);
+          setHistoryIndex(0);
+          // Update editor HTML
+          if (editorRef.current) {
+            editorRef.current.innerHTML = htmlContent;
+          }
+        }
       }
       
       // Mark as success
@@ -1118,30 +1507,96 @@ export default function UploadPage() {
     setUploadingFiles(prev => prev.filter(f => f.id !== id));
   };
 
-  // Editor toolbar handlers
-  const insertText = (text: string) => {
-    if (!editorRef.current) return;
-    const textarea = editorRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = editorContent.substring(start, end);
-    const before = editorContent.substring(0, start);
-    const after = editorContent.substring(end);
+  // Delete story handler
+  const handleDeleteStory = (storyId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); 
     
-    setEditorContent(before + text + selectedText + after);
-    
-    // Restore cursor position
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + text.length, start + text.length + selectedText.length);
-    }, 0);
+    const story = stories.find(s => s.id === storyId);
+    if (!story) return;
+
+    if (window.confirm(`Are you sure you want to delete the story "${story.title}"?\n\nThis action cannot be undone.`)) {
+      const newStories = stories.filter(s => s.id !== storyId);
+      saveStories(newStories);
+      
+      if (selectedStoryId === storyId) {
+        setSelectedStoryId(null);
+        setSelectedChapterId(null);
+        setSelectedVersionId(null);
+        setEditorContent('');
+        setCurrentChapterTitle('');
+      }
+    }
   };
 
-  const handleBold = () => insertText('**');
-  const handleItalic = () => insertText('*');
-  const handleHeading1 = () => insertText('# ');
-  const handleHeading2 = () => insertText('## ');
-  const handleDivider = () => insertText('\n---\n');
+  // Save to history for undo/redo
+  const saveToHistory = (content: string) => {
+    setHistory(prev => {
+      const newHistory = prev.slice(0, historyIndex + 1);
+      // Only add if content is different from last history entry
+      if (newHistory[newHistory.length - 1] !== content) {
+        newHistory.push(content);
+        setHistoryIndex(newHistory.length - 1);
+        return newHistory;
+      }
+      return prev;
+    });
+  };
+
+  // Convert HTML to plain text for character count
+  const htmlToText = (html: string): string => {
+    if (!html) return '';
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
+  };
+
+  // Undo handler
+  const handleUndo = () => {
+    if (historyIndex > 0 && editorRef.current) {
+      isUndoRedoRef.current = true;
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setEditorContent(history[newIndex]);
+      editorRef.current.innerHTML = history[newIndex];
+      setTimeout(() => {
+        editorRef.current?.focus();
+      }, 0);
+    }
+  };
+
+  // Redo handler
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1 && editorRef.current) {
+      isUndoRedoRef.current = true;
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setEditorContent(history[newIndex]);
+      editorRef.current.innerHTML = history[newIndex];
+      setTimeout(() => {
+        editorRef.current?.focus();
+      }, 0);
+    }
+  };
+
+  // Editor toolbar handlers using execCommand for rich text
+  const executeCommand = (command: string, value?: string) => {
+    if (!editorRef.current) return;
+    
+    // Focus editor first
+    editorRef.current.focus();
+    
+    // Execute formatting command
+    document.execCommand(command, false, value);
+    
+    // Update content from innerHTML
+    const newContent = editorRef.current.innerHTML;
+    setEditorContent(newContent);
+    saveToHistory(newContent);
+  };
+
+  const handleBold = () => executeCommand('bold');
+  const handleItalic = () => executeCommand('italic');
+  const handleUnderline = () => executeCommand('underline');
 
   // Chapter/Version handlers
   const handleSelectChapter = (chapterId: string) => {
@@ -1152,23 +1607,138 @@ export default function UploadPage() {
     
     if (chapter) {
       const mainVersion = chapter.versions.find(v => v.isMain) || chapter.versions[0];
-      if (mainVersion) {
-        setSelectedVersionId(mainVersion.id);
-        setEditorContent(mainVersion.content);
-        setCurrentChapterTitle(chapter.title);
+      const content = mainVersion ? mainVersion.content : '';
+      setSelectedVersionId(mainVersion?.id || null);
+      
+      // Convert plain text to HTML if needed
+      let htmlContent = content || '<p><br></p>';
+      if (content && !content.includes('<')) {
+        htmlContent = content.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
+      }
+      
+      setEditorContent(htmlContent);
+      // Reset history when switching chapters
+      setHistory([htmlContent]);
+      setHistoryIndex(0);
+      setCurrentChapterTitle(chapter.title);
+      
+      // Update editor HTML
+      if (editorRef.current) {
+        editorRef.current.innerHTML = htmlContent;
       }
     }
+  };
+
+  // Update chapter title
+  const handleUpdateChapterTitle = (newTitle: string) => {
+    if (!selectedChapterId || !newTitle.trim()) return;
+
+    const newStories = stories.map(story => ({
+      ...story,
+      chapters: story.chapters.map(chapter => {
+        if (chapter.id === selectedChapterId) {
+          return {
+            ...chapter,
+            title: newTitle.trim()
+          };
+        }
+        return chapter;
+      }),
+      updatedAt: new Date().toISOString()
+    }));
+
+    saveStories(newStories);
+    setCurrentChapterTitle(newTitle.trim());
   };
 
   const handleSelectStory = (storyId: string) => {
     setSelectedStoryId(storyId);
   };
 
+  // Update story title handler
+  const handleUpdateStoryTitle = (storyId: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+
+    const newStories = stories.map(story => {
+      if (story.id === storyId) {
+        return {
+          ...story,
+          title: newTitle.trim(),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return story;
+    });
+
+    saveStories(newStories);
+  };
+
   const handleSaveChapter = () => {
     if (!selectedChapterId || !currentChapterTitle.trim()) {
-      alert('Vui lòng chọn chương hoặc nhập tên chương');
+      alert('Please select a chapter or enter chapter name');
       return;
     }
+
+    if (!editorRef.current) return;
+
+    // Get current content from editor
+    const currentContent = editorRef.current.innerHTML.trim() || '';
+    
+    if (!currentContent || currentContent === '<p><br></p>' || currentContent === '<p></p>') {
+      alert('Please enter some content');
+      return;
+    }
+
+    // Check if content has changed compared to the current version
+    const selectedVersion = selectedChapter?.versions.find(v => v.id === selectedVersionId) || 
+                           selectedChapter?.versions.find(v => v.isMain) || 
+                           selectedChapter?.versions[0];
+    
+    if (selectedVersion) {
+      // Compare text content (ignore HTML formatting differences)
+      const getTextContent = (html: string) => {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return (div.textContent || div.innerText || '').trim();
+      };
+      
+      const currentText = getTextContent(currentContent);
+      const versionText = getTextContent(selectedVersion.content);
+      
+      // If text content hasn't changed, no need to save
+      if (currentText === versionText && currentText !== '') {
+        // No changes, just show message
+        alert('No changes to save');
+        return;
+      }
+    } else {
+      // No version exists yet - create first version automatically without dialog
+      if (!editorRef.current) return;
+      
+      const htmlContent = editorRef.current.innerHTML;
+      const content = htmlContent.trim() || '';
+      const textContent = htmlToText(content).trim();
+      
+      if (!textContent) {
+        alert('Please enter some content');
+        return;
+      }
+      
+      // Auto-save as first version with "Draft" label
+      handleSaveChapterWithVersion('Draft');
+      return;
+    }
+
+    // Content has changed, show version name dialog
+    setVersionNameDialogOpen(true);
+  };
+
+  const handleSaveChapterWithVersion = (versionName: string) => {
+    if (!selectedChapterId || !editorRef.current) return;
+
+    // Get HTML content from editor
+    const htmlContent = editorRef.current.innerHTML;
+    const content = htmlContent.trim() || '';
 
     const newStories = stories.map(story => ({
       ...story,
@@ -1177,8 +1747,8 @@ export default function UploadPage() {
           const newVersion: Version = {
             id: Date.now().toString(),
             version: chapter.versions.length + 1,
-            label: 'Draft',
-            content: editorContent,
+            label: versionName,
+            content: content,
             createdAt: new Date().toISOString(),
             isMain: chapter.versions.length === 0
           };
@@ -1188,18 +1758,140 @@ export default function UploadPage() {
           };
         }
         return chapter;
-      })
+      }),
+      updatedAt: new Date().toISOString()
     }));
 
     saveStories(newStories);
-    alert('Đã lưu thành công!');
+    setEditorContent(content);
+    
+    // Update selected version to the new one
+    const updatedChapter = newStories
+      .flatMap(s => s.chapters)
+      .find(c => c.id === selectedChapterId);
+    if (updatedChapter && updatedChapter.versions.length > 0) {
+      const latestVersion = updatedChapter.versions[updatedChapter.versions.length - 1];
+      setSelectedVersionId(latestVersion.id);
+    }
+    
+    alert('Saved successfully!');
+  };
+
+  const handleCreateChapter = () => {
+    if (!selectedStoryId) {
+      alert('Please select a story first');
+      return;
+    }
+    setCreateChapterDialogOpen(true);
+  };
+
+  const handleCreateChapterConfirm = (chapterTitle: string) => {
+    if (!selectedStoryId) return;
+
+    const newStories = stories.map(story => {
+      if (story.id === selectedStoryId) {
+        const newChapter: Chapter = {
+          id: Date.now().toString(),
+          title: chapterTitle,
+          order: story.chapters.length + 1,
+          versions: []
+        };
+        return {
+          ...story,
+          chapters: [...story.chapters, newChapter],
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return story;
+    });
+
+    saveStories(newStories);
+    
+    // Select the new chapter
+    const newStory = newStories.find(s => s.id === selectedStoryId);
+    if (newStory && newStory.chapters.length > 0) {
+      const newChapter = newStory.chapters[newStory.chapters.length - 1];
+      setSelectedChapterId(newChapter.id);
+      setCurrentChapterTitle(newChapter.title);
+      setEditorContent('');
+    }
+  };
+
+  // Create new story handler
+  const handleCreateStory = () => {
+    setCreateStoryDialogOpen(true);
+  };
+
+  const handleCreateStoryConfirm = (storyTitle: string) => {
+    // Create new story with default Chapter 1
+    const storyId = Date.now().toString();
+    const chapterId = `${storyId}-1`;
+    const newStory: Story = {
+      id: storyId,
+      title: storyTitle,
+      chapters: [{
+        id: chapterId,
+        title: 'Chapter 1',
+        order: 1,
+        versions: []
+      }],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const newStories = [...stories, newStory];
+    saveStories(newStories);
+
+    // Select the new story and default to Chapter 1
+    setSelectedStoryId(newStory.id);
+    setSelectedChapterId(chapterId);
+    setCurrentChapterTitle('Chapter 1');
+    const emptyContent = '<p><br></p>';
+    setEditorContent(emptyContent);
+    // Reset history
+    setHistory([emptyContent]);
+    setHistoryIndex(0);
+    // Update editor HTML
+    if (editorRef.current) {
+      editorRef.current.innerHTML = emptyContent;
+    }
+    setMode('editor');
+  };
+
+  // Import file from sidebar
+  const handleImportFromSidebar = () => {
+    setMode('upload');
+    // Trigger file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.txt,.docx,.doc';
+    fileInput.multiple = false;
+    fileInput.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files && target.files.length > 0) {
+        handleFiles(Array.from(target.files));
+      }
+    };
+    fileInput.click();
   };
 
   const handleVersionView = (versionId: string) => {
     const version = selectedChapter?.versions.find(v => v.id === versionId);
     if (version) {
       setSelectedVersionId(versionId);
-      setEditorContent(version.content);
+      // Convert plain text to HTML if needed
+      let htmlContent = version.content || '<p><br></p>';
+      if (version.content && !version.content.includes('<')) {
+        htmlContent = version.content.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
+      }
+      setEditorContent(htmlContent);
+      // Reset history
+      setHistory([htmlContent]);
+      setHistoryIndex(0);
+      // Update editor HTML
+      if (editorRef.current) {
+        editorRef.current.innerHTML = htmlContent;
+      }
       setVersionManagerOpen(false);
     }
   };
@@ -1370,7 +2062,7 @@ export default function UploadPage() {
               <CardHeader>
                 <CardTitle>Stories</CardTitle>
                 <CardDescription>
-                  Danh sách truyện của bạn
+                  Your stories list
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1392,13 +2084,33 @@ export default function UploadPage() {
                           <div>
                             <p className="font-medium text-foreground">{story.title}</p>
                             <p className="text-xs text-muted-foreground">
-                              {story.chapters.length} chương • Cập nhật: {new Date(story.updatedAt).toLocaleDateString('vi-VN')}
+                              {story.chapters.length} chapter • Updated: {new Date(story.updatedAt).toLocaleDateString('vi-VN')}
                             </p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStoryId(story.id);
+                              setMode('editor');
+                            }}
+                            title="View story"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => handleDeleteStory(story.id, e)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Delete story"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -1416,6 +2128,9 @@ export default function UploadPage() {
                 selectedChapterId={selectedChapterId}
                 onSelectChapter={handleSelectChapter}
                 onSelectStory={handleSelectStory}
+                onCreateStory={handleCreateStory}
+                onImportFile={handleImportFromSidebar}
+                onUpdateStoryTitle={handleUpdateStoryTitle}
               />
 
               {/* Editor Area */}
@@ -1426,10 +2141,20 @@ export default function UploadPage() {
                       <div>
                         <CardTitle>Story Editor</CardTitle>
                         <CardDescription>
-                          {selectedChapter ? selectedChapter.title : 'Chọn chương để chỉnh sửa'}
+                          {selectedChapter ? selectedChapter.title : 'Select a chapter to edit'}
                         </CardDescription>
                       </div>
                       <div className="flex gap-2">
+                        {selectedStoryId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCreateChapter}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Chapter
+                          </Button>
+                        )}
                         {selectedChapterId && (
                           <Button
                             variant="outline"
@@ -1453,25 +2178,113 @@ export default function UploadPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col p-0">
+                    {/* Chapter Title Editor */}
+                    {selectedChapter && (
+                      <div className="px-4 pt-4 pb-2 border-b border-border">
+                        <Input
+                          value={currentChapterTitle}
+                          onChange={(e) => setCurrentChapterTitle(e.target.value)}
+                          onBlur={(e) => {
+                            if (e.target.value.trim() && e.target.value.trim() !== selectedChapter.title) {
+                              handleUpdateChapterTitle(e.target.value.trim());
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.currentTarget.blur();
+                            }
+                            if (e.key === 'Escape') {
+                              setCurrentChapterTitle(selectedChapter.title);
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          placeholder="Chapter title..."
+                          className="text-2xl font-bold border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-2 h-auto font-serif"
+                        />
+                      </div>
+                    )}
+
                     {/* Editor Toolbar */}
                     <EditorToolbar
+                      onUndo={handleUndo}
+                      onRedo={handleRedo}
                       onBold={handleBold}
                       onItalic={handleItalic}
-                      onHeading1={handleHeading1}
-                      onHeading2={handleHeading2}
-                      onDivider={handleDivider}
+                      onUnderline={handleUnderline}
+                      canUndo={historyIndex > 0}
+                      canRedo={historyIndex < history.length - 1}
                     />
 
-                    {/* Text Editor */}
-                    <textarea
+                    {/* Rich Text Editor */}
+                    <div
                       ref={editorRef}
-                      value={editorContent}
-                      onChange={(e) => setEditorContent(e.target.value)}
-                      placeholder="Chọn chương từ sidebar hoặc bắt đầu viết truyện mới..."
-                      className="flex-1 w-full px-4 py-3 border-0 rounded-b-lg bg-background text-foreground focus:outline-none resize-none font-mono text-sm"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onInput={(e) => {
+                        if (!isUndoRedoRef.current) {
+                          const newContent = e.currentTarget.innerHTML;
+                          setEditorContent(newContent);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        // Handle Ctrl+S for save
+                        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                          e.preventDefault();
+                          handleSaveChapter();
+                        }
+                        // Handle Ctrl+Z for undo
+                        if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleUndo();
+                        }
+                        // Handle Ctrl+Shift+Z or Ctrl+Y for redo
+                        if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || 
+                            ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+                          e.preventDefault();
+                          handleRedo();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        // Handle paste to preserve formatting
+                        e.preventDefault();
+                        const text = e.clipboardData.getData('text/plain');
+                        document.execCommand('insertText', false, text);
+                      }}
+                      className="flex-1 w-full px-4 py-3 border-0 rounded-b-lg bg-background text-foreground focus:outline-none resize-none text-sm min-h-[200px] overflow-y-auto"
+                      style={{ 
+                        minHeight: '200px',
+                        outline: 'none'
+                      }}
+                      data-placeholder="Select a chapter from sidebar or start writing a new story..."
                     />
+                    <style>{`
+                      [contenteditable][data-placeholder]:empty:before {
+                        content: attr(data-placeholder);
+                        color: hsl(var(--muted-foreground));
+                        pointer-events: none;
+                      }
+                      [contenteditable] h1 {
+                        font-size: 1.5rem;
+                        font-weight: bold;
+                        margin: 1rem 0;
+                      }
+                      [contenteditable] h2 {
+                        font-size: 1.25rem;
+                        font-weight: bold;
+                        margin: 0.75rem 0;
+                      }
+                      [contenteditable] p {
+                        margin: 0.5rem 0;
+                      }
+                      [contenteditable] hr {
+                        margin: 1rem 0;
+                        border: none;
+                        border-top: 1px solid hsl(var(--border));
+                      }
+                    `}</style>
                     <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground text-right">
-                      {editorContent.length} ký tự
+                      {editorRef.current ? htmlToText(editorRef.current.innerHTML).length : htmlToText(editorContent).length} characters
                     </div>
                   </CardContent>
                 </Card>
@@ -1512,9 +2325,30 @@ export default function UploadPage() {
           onClose={() => setCompareViewOpen(false)}
           onSetMain={handleSetMain}
           onCreateNew={() => {
-            alert('Tính năng tạo version mới từ so sánh sẽ được triển khai');
+            alert('Feature to create new version from comparison will be implemented');
             setCompareViewOpen(false);
           }}
+        />
+
+        {/* Version Name Dialog */}
+        <VersionNameDialog
+          isOpen={versionNameDialogOpen}
+          onClose={() => setVersionNameDialogOpen(false)}
+          onConfirm={handleSaveChapterWithVersion}
+        />
+
+        {/* Create Chapter Dialog */}
+        <CreateChapterDialog
+          isOpen={createChapterDialogOpen}
+          onClose={() => setCreateChapterDialogOpen(false)}
+          onConfirm={handleCreateChapterConfirm}
+        />
+
+        {/* Create Story Dialog */}
+        <CreateStoryDialog
+          isOpen={createStoryDialogOpen}
+          onClose={() => setCreateStoryDialogOpen(false)}
+          onConfirm={handleCreateStoryConfirm}
         />
       </motion.div>
     </DefaultLayout>
