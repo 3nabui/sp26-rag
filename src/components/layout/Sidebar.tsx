@@ -9,6 +9,7 @@ import {
   Users,
   FileSearch,
   Folder,
+  User as UserIcon,
   Menu
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,8 @@ const authorNavItems: NavItem[] = [
   { label: 'Upload Manuscript', path: '/author/upload', icon: <Upload className="w-5 h-5" /> },
   { label: 'Analysis', path: '/author/analysis', icon: <BarChart3 className="w-5 h-5" /> },
   { label: 'Ask AI', path: '/author/chatbot', icon: <MessageSquare className="w-5 h-5" /> },
+  { label: 'Profile', path: '/profile', icon: <UserIcon className="w-5 h-5" /> },
+  { label: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5" /> },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -41,6 +44,8 @@ const adminNavItems: NavItem[] = [
 const staffNavItems: NavItem[] = [
   { label: 'Review', path: '/staff/review', icon: <FileSearch className="w-5 h-5" /> },
   { label: 'Content', path: '/staff/cms', icon: <Folder className="w-5 h-5" /> },
+  { label: 'Profile', path: '/profile', icon: <UserIcon className="w-5 h-5" /> },
+  { label: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5" /> },
 ];
 
 export function Sidebar({ role = 'author' }: SidebarProps) {
@@ -145,8 +150,11 @@ export function Sidebar({ role = 'author' }: SidebarProps) {
               size="icon" 
               className="w-full"
               title="Support Center"
+              asChild
             >
-              <BookOpen className="w-5 h-5" />
+              <Link to="/support">
+                <BookOpen className="w-5 h-5" />
+              </Link>
             </Button>
           </div>
         ) : (
@@ -155,8 +163,10 @@ export function Sidebar({ role = 'author' }: SidebarProps) {
             <p className="text-xs text-muted-foreground mb-3">
               Contact us for assistance.
             </p>
-            <Button variant="outline" size="sm" className="w-full">
-              Support Center
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <Link to="/support">
+                Support Center
+              </Link>
             </Button>
           </div>
         )}

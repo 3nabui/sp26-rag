@@ -363,44 +363,44 @@ export default function AnalysisPage() {
             {/* Fallback to mock manuscripts if no uploaded stories */}
             {stories.length === 0 && (
               <>
-                <div className="w-56">
-                  <p className="mb-1 text-xs font-medium text-muted-foreground">Manuscript</p>
-                  <Select
-                    value={String(selectedManuscriptId)}
-                    onValueChange={(value) => setSelectedManuscriptId(Number(value))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select manuscript" />
-                    </SelectTrigger>
-                  <SelectContent>
-                    {mockManuscripts.map((m) => (
-                      <SelectItem key={m.id} value={String(m.id)}>
+            <div className="w-56">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Manuscript</p>
+              <Select
+                value={String(selectedManuscriptId)}
+                onValueChange={(value) => setSelectedManuscriptId(Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select manuscript" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockManuscripts.map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
                         {m.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-40">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Chapter</p>
+              <Select
+                value={String(selectedChapter)}
+                onValueChange={(value) => setSelectedChapter(Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select chapter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: selectedManuscript.chapters || 0 }, (_, i) => i + 1).map(
+                    (ch) => (
+                      <SelectItem key={ch} value={String(ch)}>
+                        Chapter {ch}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                  </Select>
-                </div>
-                <div className="w-40">
-                  <p className="mb-1 text-xs font-medium text-muted-foreground">Chapter</p>
-                  <Select
-                    value={String(selectedChapter)}
-                    onValueChange={(value) => setSelectedChapter(Number(value))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select chapter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: selectedManuscript.chapters || 0 }, (_, i) => i + 1).map(
-                        (ch) => (
-                          <SelectItem key={ch} value={String(ch)}>
-                            Chapter {ch}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
                 <div className="w-40">
                   <p className="mb-1 text-xs font-medium text-muted-foreground">Version</p>
                   <Select
@@ -466,29 +466,29 @@ export default function AnalysisPage() {
                       {selectedChapterData.versions.find(v => v.id === selectedVersionId) 
                         ? `v${selectedChapterData.versions.find(v => v.id === selectedVersionId)?.version} - ${selectedChapterData.versions.find(v => v.id === selectedVersionId)?.label || ''}`
                         : '—'}
-                    </p>
-                  </div>
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
           )}
           {!selectedChapterData && selectedManuscript && (
-            <Card variant="metric">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <Info className="w-5 h-5 text-accent" />
-                  </div>
-                  <div>
+          <Card variant="metric">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <Info className="w-5 h-5 text-accent" />
+                </div>
+                <div>
                     <p className="text-sm text-muted-foreground">File Type</p>
                     <p className="text-sm font-semibold text-foreground">
-                      {selectedManuscript.fileName.split('.').pop()?.toUpperCase()} •{' '}
-                      {new Date(selectedManuscript.uploadedAt).toLocaleDateString('en-US')}
-                    </p>
-                  </div>
+                    {selectedManuscript.fileName.split('.').pop()?.toUpperCase()} •{' '}
+                    {new Date(selectedManuscript.uploadedAt).toLocaleDateString('en-US')}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
           )}
           <Card variant="metric">
             <CardContent className="p-4">
@@ -768,9 +768,9 @@ export default function AnalysisPage() {
                   New upload will create a new version for{' '}
                   <span className="font-semibold text-foreground">
                     Chapter {selectedChapter}
-                  </span>
+                          </span>
                   . After AI analysis, history will be updated below.
-                </div>
+                        </div>
 
                 <Table>
                   <TableHeader>

@@ -1,4 +1,5 @@
-import { Bell, Search, Settings, ChevronDown, LogOut, User } from 'lucide-react';
+import { Bell, Search, Settings, ChevronDown, LogOut, User, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,9 +19,90 @@ interface HeaderProps {
   title?: string;
 }
 
+const PROFILE_STORAGE_KEY = 'storynest_profile';
+
+type StoredProfile = {
+  name: string;
+  email: string;
+  joinedAt?: string;
+};
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const initials = parts.slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');
+  return initials || 'NA';
+}
+
+function loadProfile(): StoredProfile {
+  const fallback: StoredProfile = {
+    name: 'Võ Hào',
+    email: 'hao.vo@example.com',
+    joinedAt: '2024-12-01',
+  };
+  try {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.name || !parsed?.email) return fallback;
+    return {
+      name: String(parsed.name),
+      email: String(parsed.email),
+      joinedAt: String(parsed.joinedAt || fallback.joinedAt),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export function Header({ title = 'Dashboard' }: HeaderProps) {
   const navigate = useNavigate();
   const { isCollapsed } = useSidebar();
+  const [notificationRead, setNotificationRead] = useState<Record<string, boolean>>({});
+  const [profile, setProfile] = useState<StoredProfile>(() => loadProfile());
+
+  useEffect(() => {
+    const handler = () => setProfile(loadProfile());
+    window.addEventListener('storynest_profile_updated', handler);
+    return () => window.removeEventListener('storynest_profile_updated', handler);
+  }, []);
+
+  const notifications = useMemo(() => ([
+    {
+      id: 'n1',
+      type: 'info' as const,
+      title: 'Analysis completed',
+      message: 'Chapter 4 analysis is ready to view.',
+      time: '2m ago',
+      action: { label: 'Open', to: '/author/analysis' },
+    },
+    {
+      id: 'n2',
+      type: 'warning' as const,
+      title: 'Upload processing',
+      message: 'Your manuscript is still processing. Please wait.',
+      time: '18m ago',
+      action: { label: 'Go to Upload', to: '/author/upload' },
+    },
+    {
+      id: 'n3',
+      type: 'success' as const,
+      title: 'New tip available',
+      message: 'Check out best practices for chapter versioning.',
+      time: '1h ago',
+      action: { label: 'Support', to: '/support' },
+    },
+  ]), []);
+
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !notificationRead[n.id]).length,
+    [notifications, notificationRead]
+  );
+
+  const iconForType = (type: 'info' | 'warning' | 'success') => {
+    if (type === 'success') return <CheckCircle2 className="w-4 h-4 text-success" />;
+    if (type === 'warning') return <AlertCircle className="w-4 h-4 text-warning" />;
+    return <Info className="w-4 h-4 text-info" />;
+  };
 
   return (
     <header className={cn(
@@ -47,15 +129,86 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
         {/* Actions */}
         <div className="flex items-center gap-3">
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
-              3
-            </span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-96">
+              <div className="flex items-center justify-between px-2 py-1.5">
+                <DropdownMenuLabel className="px-0">Notifications</DropdownMenuLabel>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs"
+                  onClick={() => {
+                    const next: Record<string, boolean> = {};
+                    notifications.forEach((n) => { next[n.id] = true; });
+                    setNotificationRead(next);
+                  }}
+                  disabled={unreadCount === 0}
+                >
+                  Mark all as read
+                </Button>
+              </div>
+              <DropdownMenuSeparator />
+              <div className="max-h-80 overflow-auto">
+                {notifications.map((n) => (
+                  <DropdownMenuItem
+                    key={n.id}
+                    className="cursor-pointer items-start gap-3 py-3"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setNotificationRead((prev) => ({ ...prev, [n.id]: true }));
+                      navigate(n.action.to);
+                    }}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {iconForType(n.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {n.title}
+                        </p>
+                        <span className="text-xs text-muted-foreground shrink-0">{n.time}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {n.message}
+                      </p>
+                      {!notificationRead[n.id] && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-primary">
+                            <span className="w-2 h-2 rounded-full bg-primary" />
+                            Unread
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer justify-center"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  navigate('/support');
+                }}
+              >
+                View all
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Settings */}
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
             <Settings className="w-5 h-5" />
           </Button>
 
@@ -65,21 +218,21 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
               <Button variant="ghost" className="flex items-center gap-2 pl-2 pr-3">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                    NA
+                    {getInitials(profile.name)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">Võ Hào</span>
+                <span className="text-sm font-medium">{profile.name}</span>
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
                 <User className="w-4 h-4 mr-2" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </DropdownMenuItem>
