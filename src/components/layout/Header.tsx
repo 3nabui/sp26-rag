@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from './SidebarContext';
 import { cn } from '@/lib/utils';
 
@@ -56,6 +56,7 @@ function loadProfile(): StoredProfile {
 
 export function Header({ title = 'Dashboard' }: HeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isCollapsed } = useSidebar();
   const [notificationRead, setNotificationRead] = useState<Record<string, boolean>>({});
   const [profile, setProfile] = useState<StoredProfile>(() => loadProfile());
@@ -103,6 +104,16 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
     if (type === 'warning') return <AlertCircle className="w-4 h-4 text-warning" />;
     return <Info className="w-4 h-4 text-info" />;
   };
+
+  const accountBase = useMemo(() => {
+    if (location.pathname.startsWith('/staff')) return '/staff';
+    if (location.pathname.startsWith('/admin')) return '/admin';
+    if (location.pathname.startsWith('/author')) return '/author';
+    return '';
+  }, [location.pathname]);
+
+  const profilePath = `${accountBase}/profile`.replace(/^\/profile$/, '/profile');
+  const settingsPath = `${accountBase}/settings`.replace(/^\/settings$/, '/settings');
 
   return (
     <header className={cn(
@@ -208,7 +219,7 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
           </DropdownMenu>
 
           {/* Settings */}
-          <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(settingsPath)}>
             <Settings className="w-5 h-5" />
           </Button>
 
@@ -228,11 +239,11 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/profile')}>
+              <DropdownMenuItem onClick={() => navigate(profilePath)}>
                 <User className="w-4 h-4 mr-2" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <DropdownMenuItem onClick={() => navigate(settingsPath)}>
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </DropdownMenuItem>

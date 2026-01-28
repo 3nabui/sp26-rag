@@ -42,6 +42,13 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts';
+import {
+  loadAnalysisOverrides,
+  makeMockScopeKey,
+  makeStoryScopeKey,
+  subscribeAnalysisOverrides,
+  type AnalysisOverride,
+} from '@/utils/analysisOverrides';
 
 type Pacing = 'slow' | 'medium' | 'fast';
 
@@ -188,6 +195,7 @@ export default function AnalysisPage() {
   const [selectedVersionId, setSelectedVersionId] = useState<string>(''); // specific version id
   const [selectedManuscriptId, setSelectedManuscriptId] = useState<number>(mockManuscripts[0].id);
   const [selectedChapter, setSelectedChapter] = useState<number>(4);
+  const [overrideRevision, setOverrideRevision] = useState(0);
 
   // Load stories from localStorage
   useEffect(() => {
@@ -212,6 +220,10 @@ export default function AnalysisPage() {
     }
   }, []);
 
+  useEffect(() => {
+    return subscribeAnalysisOverrides(() => setOverrideRevision((v) => v + 1));
+  }, []);
+
   const selectedStory = useMemo(
     () => stories.find(s => s.id === selectedStoryId),
     [stories, selectedStoryId]
@@ -227,7 +239,36 @@ export default function AnalysisPage() {
     [selectedManuscriptId],
   );
 
-  const scenes = mockScenesByChapter[selectedChapter] || [];
+  const effectiveChapterNumber = selectedChapterData?.order || selectedChapter;
+
+  const overrideStore = useMemo(() => loadAnalysisOverrides(), [overrideRevision]);
+
+  const activeOverride: AnalysisOverride | undefined = useMemo(() => {
+    if (selectedStory && selectedChapterData && selectedVersionId) {
+      const key = makeStoryScopeKey({
+        storyId: selectedStory.id,
+        chapterId: selectedChapterData.id,
+        versionId: selectedVersionId,
+      });
+      return overrideStore[key];
+    }
+
+    const mockKey = makeMockScopeKey({
+      manuscriptId: selectedManuscriptId,
+      chapter: effectiveChapterNumber,
+      versionId: selectedVersionId || undefined,
+    });
+    return overrideStore[mockKey];
+  }, [
+    overrideStore,
+    selectedStory,
+    selectedChapterData,
+    selectedVersionId,
+    selectedManuscriptId,
+    effectiveChapterNumber,
+  ]);
+
+  const scenes = mockScenesByChapter[effectiveChapterNumber] || [];
   const totalScenes = scenes.length;
 
   const characterFrequency = useMemo(() => {
@@ -240,16 +281,21 @@ export default function AnalysisPage() {
     return Array.from(freq.entries()).map(([name, count]) => ({ name, count }));
   }, [scenes]);
 
-  const avgWordsPerScene = totalScenes
+  const avgWordsPerSceneComputed = totalScenes
     ? Math.round(scenes.reduce((sum, s) => sum + s.wordCount, 0) / totalScenes)
     : 0;
 
-  const dominantEmotion = useMemo(() => {
+  const dominantEmotionComputed = useMemo(() => {
     if (!scenes.length) return '—';
     const map = new Map<string, number>();
     scenes.forEach((s) => map.set(s.emotion, (map.get(s.emotion) || 0) + s.emotionIntensity));
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1])[0][0];
   }, [scenes]);
+
+  const effectiveDominantEmotion = activeOverride?.dominantEmotion || dominantEmotionComputed;
+  const effectiveAvgWordsPerScene =
+    typeof activeOverride?.avgWordsPerScene === 'number' ? activeOverride.avgWordsPerScene : avgWordsPerSceneComputed;
+  const effectiveCharacterFrequency = activeOverride?.characterFrequency || characterFrequency;
 
   return (
     <DefaultLayout title="Chapter Analysis" role="author">
@@ -551,7 +597,12 @@ export default function AnalysisPage() {
           <TabsContent value="chapter">
             <Card variant="elevated">
               <CardHeader>
-                <CardTitle>Chapter {selectedChapter} Overview</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  Chapter {effectiveChapterNumber} Overview
+                  {activeOverride && (
+                    <Badge variant="secondary" className="text-xs">Adjusted</Badge>
+                  )}
+                </CardTitle>
                 <CardDescription>
                   Statistics on pacing, dominant emotions, and scene structure of the chapter.
                 </CardDescription>
@@ -578,7 +629,7 @@ export default function AnalysisPage() {
                           <Heart className="w-4 h-4 text-pink-500" />
                         </div>
                         <div>
-                          <p className="text-base font-bold text-foreground">{dominantEmotion}</p>
+                          <p className="text-base font-bold text-foreground">{effectiveDominantEmotion}</p>
                           <p className="text-xs text-muted-foreground">Dominant Emotion</p>
                         </div>
                       </div>
@@ -592,7 +643,7 @@ export default function AnalysisPage() {
                         </div>
                   <div>
                           <p className="text-xl font-bold text-foreground">
-                            {avgWordsPerScene ? avgWordsPerScene.toLocaleString() : '—'}
+                            {effectiveAvgWordsPerScene ? effectiveAvgWordsPerScene.toLocaleString() : '—'}
                           </p>
                           <p className="text-xs text-muted-foreground">Words / Scene (Est.)</p>
                         </div>
@@ -654,7 +705,7 @@ export default function AnalysisPage() {
           <TabsContent value="scenes">
             <Card variant="elevated">
               <CardHeader>
-                <CardTitle>Scenes in Chapter {selectedChapter}</CardTitle>
+                <CardTitle>Scenes in Chapter {effectiveChapterNumber}</CardTitle>
                 <CardDescription>
                   Description of main content, issues, and emotions of each scene.
                 </CardDescription>
@@ -717,13 +768,13 @@ export default function AnalysisPage() {
           <TabsContent value="characters">
             <Card variant="elevated">
               <CardHeader>
-                <CardTitle>Characters in Chapter {selectedChapter}</CardTitle>
+                <CardTitle>Characters in Chapter {effectiveChapterNumber}</CardTitle>
                 <CardDescription>
                   Frequency of appearance for each character based on analyzed scenes.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {characterFrequency.length === 0 ? (
+                {effectiveCharacterFrequency.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No character data available for this chapter.
                   </p>
@@ -737,7 +788,7 @@ export default function AnalysisPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {characterFrequency.map((char) => (
+                      {effectiveCharacterFrequency.map((char) => (
                         <TableRow key={char.name}>
                           <TableCell className="font-medium">{char.name}</TableCell>
                           <TableCell>{char.count}</TableCell>
