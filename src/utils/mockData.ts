@@ -16,7 +16,6 @@ export interface Manuscript {
   fileSize: number;
   uploadedAt: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
-  version: number;
   chapters?: number;
   words?: number;
 }
@@ -74,7 +73,6 @@ export const mockManuscripts: Manuscript[] = [
     fileSize: 245000, 
     uploadedAt: '2024-12-15', 
     status: 'completed',
-    version: 3,
     chapters: 24,
     words: 85000
   },
@@ -86,7 +84,6 @@ export const mockManuscripts: Manuscript[] = [
     fileSize: 180000, 
     uploadedAt: '2024-12-20', 
     status: 'processing',
-    version: 1,
     chapters: 18,
     words: 62000
   },
@@ -98,7 +95,6 @@ export const mockManuscripts: Manuscript[] = [
     fileSize: 320000, 
     uploadedAt: '2024-12-25', 
     status: 'pending',
-    version: 2,
     chapters: 32,
     words: 120000
   },

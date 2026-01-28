@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   BarChart3, 
@@ -10,6 +10,7 @@ import {
   FileText,
   Clock3,
   ArrowRight,
+  GitBranch,
 } from 'lucide-react';
 import { DefaultLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -147,9 +148,79 @@ const pacingColor: Record<Pacing, string> = {
   fast: 'bg-warning/10 text-warning border-warning/20',
 };
 
+// Story structure from Upload page
+interface Version {
+  id: string;
+  version: number;
+  label: string;
+  content: string;
+  createdAt: string;
+  isMain: boolean;
+}
+
+interface Chapter {
+  id: string;
+  title: string;
+  order: number;
+  versions: Version[];
+}
+
+interface Story {
+  id: string;
+  title: string;
+  chapters: Chapter[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+const STORAGE_KEY = 'storynest_stories';
+
+const mockVersions = [
+  { id: 'v1', version: 1, label: 'Draft' },
+  { id: 'v2', version: 2, label: 'Revised' },
+  { id: 'v3', version: 3, label: 'Final' },
+];
+
 export default function AnalysisPage() {
+  const [stories, setStories] = useState<Story[]>([]);
+  const [selectedStoryId, setSelectedStoryId] = useState<string>('');
+  const [selectedChapterId, setSelectedChapterId] = useState<string>('');
+  const [selectedVersionId, setSelectedVersionId] = useState<string>(''); // specific version id
   const [selectedManuscriptId, setSelectedManuscriptId] = useState<number>(mockManuscripts[0].id);
   const [selectedChapter, setSelectedChapter] = useState<number>(4);
+
+  // Load stories from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const savedStories = JSON.parse(saved);
+        setStories(savedStories);
+        if (savedStories.length > 0) {
+          setSelectedStoryId(savedStories[0].id);
+          if (savedStories[0].chapters.length > 0) {
+            setSelectedChapterId(savedStories[0].chapters[0].id);
+            const mainVersion = savedStories[0].chapters[0].versions.find(v => v.isMain) || savedStories[0].chapters[0].versions[0];
+            if (mainVersion) {
+              setSelectedVersionId(mainVersion.id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading stories:', error);
+      }
+    }
+  }, []);
+
+  const selectedStory = useMemo(
+    () => stories.find(s => s.id === selectedStoryId),
+    [stories, selectedStoryId]
+  );
+
+  const selectedChapterData = useMemo(
+    () => selectedStory?.chapters.find(c => c.id === selectedChapterId),
+    [selectedStory, selectedChapterId]
+  );
 
   const selectedManuscript = useMemo(
     () => mockManuscripts.find((m) => m.id === selectedManuscriptId)!,
@@ -196,46 +267,168 @@ export default function AnalysisPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <div className="w-56">
-              <p className="mb-1 text-xs font-medium text-muted-foreground">Manuscript</p>
-              <Select
-                value={String(selectedManuscriptId)}
-                onValueChange={(value) => setSelectedManuscriptId(Number(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select manuscript" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockManuscripts.map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.title} (v{m.version})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-40">
-              <p className="mb-1 text-xs font-medium text-muted-foreground">Chapter</p>
-              <Select
-                value={String(selectedChapter)}
-                onValueChange={(value) => setSelectedChapter(Number(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select chapter" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: selectedManuscript.chapters || 0 }, (_, i) => i + 1).map(
-                    (ch) => (
-                      <SelectItem key={ch} value={String(ch)}>
-                        Chapter {ch}
+            {/* Story Selector (from uploaded stories) */}
+            {stories.length > 0 && (
+              <div className="w-56">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Story (Uploaded)</p>
+                <Select
+                  value={selectedStoryId}
+                  onValueChange={(value) => {
+                    setSelectedStoryId(value);
+                    const story = stories.find(s => s.id === value);
+                    if (story && story.chapters.length > 0) {
+                      setSelectedChapterId(story.chapters[0].id);
+                      const mainVersion = story.chapters[0].versions.find(v => v.isMain) || story.chapters[0].versions[0];
+                      if (mainVersion) {
+                        setSelectedVersionId(mainVersion.id);
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select story" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stories.map((story) => (
+                      <SelectItem key={story.id} value={story.id}>
+                        {story.title}
                       </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Chapter Selector */}
+            {selectedStory && (
+              <div className="w-56">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Chapter</p>
+                <Select
+                  value={selectedChapterId}
+                  onValueChange={(value) => {
+                    setSelectedChapterId(value);
+                    const chapter = selectedStory.chapters.find(c => c.id === value);
+                    if (chapter && chapter.versions.length > 0) {
+                      const mainVersion = chapter.versions.find(v => v.isMain) || chapter.versions[0];
+                      if (mainVersion) {
+                        setSelectedVersionId(mainVersion.id);
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select chapter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedStory.chapters.map((chapter) => (
+                      <SelectItem key={chapter.id} value={chapter.id}>
+                        {chapter.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Version Selector */}
+            {selectedChapterData && selectedChapterData.versions.length > 0 && (
+              <div className="w-48">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Version</p>
+                <Select
+                  value={selectedVersionId}
+                  onValueChange={(value) => setSelectedVersionId(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedChapterData.versions.map((version) => (
+                      <SelectItem key={version.id} value={version.id}>
+                        <div className="flex items-center gap-2">
+                          <span>v{version.version}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {version.label}
+                          </Badge>
+                          {version.isMain && (
+                            <Badge variant="default" className="text-xs">Main</Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Fallback to mock manuscripts if no uploaded stories */}
+            {stories.length === 0 && (
+              <>
+                <div className="w-56">
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">Manuscript</p>
+                  <Select
+                    value={String(selectedManuscriptId)}
+                    onValueChange={(value) => setSelectedManuscriptId(Number(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select manuscript" />
+                    </SelectTrigger>
+                  <SelectContent>
+                    {mockManuscripts.map((m) => (
+                      <SelectItem key={m.id} value={String(m.id)}>
+                        {m.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-40">
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">Chapter</p>
+                  <Select
+                    value={String(selectedChapter)}
+                    onValueChange={(value) => setSelectedChapter(Number(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select chapter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: selectedManuscript.chapters || 0 }, (_, i) => i + 1).map(
+                        (ch) => (
+                          <SelectItem key={ch} value={String(ch)}>
+                            Chapter {ch}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-40">
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">Version</p>
+                  <Select
+                    value={selectedVersionId}
+                    onValueChange={(value) => setSelectedVersionId(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockVersions.map((version) => (
+                        <SelectItem key={version.id} value={version.id}>
+                          <div className="flex items-center gap-2">
+                            <span>v{version.version}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {version.label}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+
             <Button variant="gradient" className="gap-2 mt-2 md:mt-5">
-              Request AI Analysis for This Chapter
+              Request AI Analysis
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
@@ -250,30 +443,53 @@ export default function AnalysisPage() {
                   <BookOpen className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Manuscript</p>
+                  <p className="text-sm text-muted-foreground">Story</p>
                   <p className="text-sm font-semibold text-foreground line-clamp-1">
-                    {selectedManuscript.title}
+                    {selectedStory ? selectedStory.title : selectedManuscript.title}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card variant="metric">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                  <Info className="w-5 h-5 text-accent" />
+          {selectedChapterData && selectedChapterData.versions.length > 0 && (
+            <Card variant="metric">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <GitBranch className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">
+                      {selectedChapterData.versions.find(v => v.id === selectedVersionId)?.version || '—'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedChapterData.versions.find(v => v.id === selectedVersionId) 
+                        ? `v${selectedChapterData.versions.find(v => v.id === selectedVersionId)?.version} - ${selectedChapterData.versions.find(v => v.id === selectedVersionId)?.label || ''}`
+                        : '—'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">v{selectedManuscript.version}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedManuscript.fileName.split('.').pop()?.toUpperCase()} •{' '}
-                    {new Date(selectedManuscript.uploadedAt).toLocaleDateString('en-US')}
-                  </p>
+              </CardContent>
+            </Card>
+          )}
+          {!selectedChapterData && selectedManuscript && (
+            <Card variant="metric">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <Info className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">File Type</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {selectedManuscript.fileName.split('.').pop()?.toUpperCase()} •{' '}
+                      {new Date(selectedManuscript.uploadedAt).toLocaleDateString('en-US')}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
           <Card variant="metric">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -282,7 +498,7 @@ export default function AnalysisPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">
-                    {selectedManuscript.chapters ?? '—'}
+                    {selectedStory ? selectedStory.chapters.length : (selectedManuscript.chapters ?? '—')}
                   </p>
                   <p className="text-xs text-muted-foreground">Total Chapters</p>
                 </div>
@@ -297,10 +513,12 @@ export default function AnalysisPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">
-                    Chapter {selectedChapter} History
+                    {selectedChapterData ? selectedChapterData.title : `Chapter ${selectedChapter}`} History
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {chapterVersionHistory.length} versions saved
+                    {selectedChapterData 
+                      ? `${selectedChapterData.versions.length} versions saved`
+                      : `${chapterVersionHistory.length} versions saved`}
                   </p>
                 </div>
               </div>
@@ -547,12 +765,12 @@ export default function AnalysisPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                  New upload will be linked to{' '}
+                  New upload will create a new version for{' '}
                   <span className="font-semibold text-foreground">
-                    Chapter {selectedChapter} • Version v{selectedManuscript.version + 1}
-                          </span>
+                    Chapter {selectedChapter}
+                  </span>
                   . After AI analysis, history will be updated below.
-                        </div>
+                </div>
 
                 <Table>
                   <TableHeader>

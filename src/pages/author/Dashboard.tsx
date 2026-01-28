@@ -176,7 +176,7 @@ export default function AuthorDashboard() {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-foreground truncate">{manuscript.title}</h4>
                         <p className="text-sm text-muted-foreground">
-                          {manuscript.chapters} chapters • {(manuscript.words! / 1000).toFixed(0)}K words • v{manuscript.version}
+                          {manuscript.chapters} chapters • {(manuscript.words! / 1000).toFixed(0)}K words
                         </p>
                       </div>
                       <StatusBadge status={manuscript.status} />
