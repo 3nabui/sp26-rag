@@ -363,7 +363,7 @@ export default function ChatbotPage() {
   };
 
   return (
-    <DefaultLayout title="Hỏi AI" role="author">
+    <DefaultLayout title="AI" role="author">
       <div className="h-[calc(100vh-8rem)] flex gap-6">
         {/* Left Sidebar - Selection */}
         <div className="w-80 space-y-4">

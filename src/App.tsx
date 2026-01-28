@@ -9,6 +9,9 @@ import Register from "./pages/Register";
 import { AuthorDashboard, UploadPage, AnalysisPage, ChatbotPage } from "./pages/author";
 import StaffReviewPage from "./pages/staff/Review";
 import { AdminDashboard, AdminConfig, AdminUsers } from "./pages/admin";
+import SupportPage from "./pages/Support";
+import ProfilePage from "./pages/Profile";
+import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +43,13 @@ const App = () => (
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/config" element={<AdminConfig />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+
+          {/* Support route */}
+          <Route path="/support" element={<SupportPage />} />
+
+          {/* Account routes */}
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
