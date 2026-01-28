@@ -44,8 +44,8 @@ const adminNavItems: NavItem[] = [
 const staffNavItems: NavItem[] = [
   { label: 'Review', path: '/staff/review', icon: <FileSearch className="w-5 h-5" /> },
   { label: 'Content', path: '/staff/cms', icon: <Folder className="w-5 h-5" /> },
-  { label: 'Profile', path: '/profile', icon: <UserIcon className="w-5 h-5" /> },
-  { label: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5" /> },
+  { label: 'Profile', path: '/staff/profile', icon: <UserIcon className="w-5 h-5" /> },
+  { label: 'Settings', path: '/staff/settings', icon: <Settings className="w-5 h-5" /> },
 ];
 
 export function Sidebar({ role = 'author' }: SidebarProps) {

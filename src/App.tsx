@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { AuthorDashboard, UploadPage, AnalysisPage, ChatbotPage } from "./pages/author";
 import StaffReviewPage from "./pages/staff/Review";
+import StaffContentPage from "./pages/staff/Content";
 import { AdminDashboard, AdminConfig, AdminUsers } from "./pages/admin";
 import SupportPage from "./pages/Support";
 import ProfilePage from "./pages/Profile";
@@ -38,6 +39,9 @@ const App = () => (
 
           {/* Staff routes */}
           <Route path="/staff/review" element={<StaffReviewPage />} />
+          <Route path="/staff/cms" element={<StaffContentPage />} />
+          <Route path="/staff/profile" element={<ProfilePage />} />
+          <Route path="/staff/settings" element={<SettingsPage />} />
 
           {/* Admin routes */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
