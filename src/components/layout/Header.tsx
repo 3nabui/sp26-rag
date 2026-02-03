@@ -1,5 +1,5 @@
 import { Bell, Search, Settings, ChevronDown, LogOut, User, CheckCircle2, AlertCircle, Info } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,27 +10,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from './SidebarContext';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   title?: string;
 }
 
-const PROFILE_STORAGE_KEY = 'storynest_profile';
-
-type StoredProfile = {
-  name: string;
-  email: string;
-  joinedAt?: string;
-};
-
 function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const initials = parts.slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');
-  return initials || 'NA';
+  const trimmed = name.trim();
+  if (!trimmed) return 'N';
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  const first = parts[0] ?? '';
+  return first.charAt(0).toUpperCase() || 'N';
+}
+
+function normalizeAvatarUrl(raw?: string | null): string | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  return null;
 }
 
 function loadProfile(): StoredProfile {
@@ -58,14 +61,8 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isCollapsed } = useSidebar();
+  const { user, isAuthenticated, logout } = useAuth();
   const [notificationRead, setNotificationRead] = useState<Record<string, boolean>>({});
-  const [profile, setProfile] = useState<StoredProfile>(() => loadProfile());
-
-  useEffect(() => {
-    const handler = () => setProfile(loadProfile());
-    window.addEventListener('storynest_profile_updated', handler);
-    return () => window.removeEventListener('storynest_profile_updated', handler);
-  }, []);
 
   const notifications = useMemo(() => ([
     {
@@ -107,13 +104,28 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
 
   const accountBase = useMemo(() => {
     if (location.pathname.startsWith('/staff')) return '/staff';
-    if (location.pathname.startsWith('/admin')) return '/admin';
     if (location.pathname.startsWith('/author')) return '/author';
+    if (location.pathname.startsWith('/admin')) return '/admin';
     return '';
   }, [location.pathname]);
 
-  const profilePath = `${accountBase}/profile`.replace(/^\/profile$/, '/profile');
-  const settingsPath = `${accountBase}/settings`.replace(/^\/settings$/, '/settings');
+  const profilePath =
+    accountBase === '/staff'
+      ? '/staff/profile'
+      : '/profile';
+
+  const settingsPath =
+    accountBase === '/staff'
+      ? '/staff/settings'
+      : accountBase === '/author'
+      ? '/author/settings'
+      : '/settings';
+
+  const displayName = isAuthenticated
+    ? user?.fullName || user?.email || 'User'
+    : 'Guest';
+
+  const initials = getInitials(displayName);
 
   return (
     <header className={cn(
@@ -227,12 +239,15 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 pl-2 pr-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                    {getInitials(profile.name)}
+                <Avatar className="h-10 w-10">
+                  {normalizeAvatarUrl(user?.avatarUrl) && (
+                    <AvatarImage src={normalizeAvatarUrl(user?.avatarUrl) || ''} alt={displayName} />
+                  )}
+                  <AvatarFallback className="bg-gradient-to-br from-primary/80 via-primary to-amber-400 text-primary-foreground text-base font-semibold shadow-md">
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">{profile.name}</span>
+                <span className="text-sm font-medium">{displayName}</span>
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
@@ -250,7 +265,10 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
-                onClick={() => navigate('/login')}
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign Out

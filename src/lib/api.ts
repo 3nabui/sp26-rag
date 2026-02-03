@@ -15,6 +15,16 @@ export interface LoginResponse {
   refreshToken: string;
 }
 
+export interface UserProfile {
+  userId: number;
+  fullName: string;
+  email: string;
+  avatarUrl?: string | null;
+  role: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
 // API Client class
 class ApiClient {
   private baseURL: string;
@@ -153,6 +163,23 @@ export const authApi = {
       CurrentPassword: currentPassword,
       NewPassword: newPassword,
       ConfirmPassword: newPassword,
+    });
+  },
+};
+
+// User API functions
+export const userApi = {
+  getProfile: async (): Promise<{ message: string; data: UserProfile }> => {
+    return apiClient.get<{ message: string; data: UserProfile }>('/api/User/profile');
+  },
+
+  updateProfile: async (
+    fullName: string,
+    avatarUrl?: string | null
+  ): Promise<{ message: string; data: UserProfile }> => {
+    return apiClient.put<{ message: string; data: UserProfile }>('/api/User/profile', {
+      FullName: fullName,
+      AvatarUrl: avatarUrl,
     });
   },
 };

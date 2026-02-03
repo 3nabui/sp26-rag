@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Mail, Shield, Calendar, Pencil } from 'lucide-react';
+import { User, Mail, Shield, Calendar, Pencil, Lock, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { DefaultLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,42 +11,56 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
+import { authApi, userApi, UserProfile } from '@/lib/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const PROFILE_STORAGE_KEY = 'storynest_profile';
+const PROFILE_STORAGE_KEY = 'storynest_profile_v2';
 
-type Profile = {
-  name: string;
-  email: string;
-  joinedAt: string;
+type ProfileExtras = {
   penName?: string;
   bio?: string;
   genres?: string[];
 };
 
+type ProfileView = {
+  id: number;
+  name: string;
+  email: string;
+  joinedAt: string;
+  role: string;
+  isActive: boolean;
+  avatarUrl?: string | null;
+} & ProfileExtras;
+
 function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const initials = parts.slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');
-  return initials || 'NA';
+  const trimmed = name.trim();
+  if (!trimmed) return 'N';
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  const first = parts[0] ?? '';
+  return first.charAt(0).toUpperCase() || 'N';
 }
 
-function loadProfile(): Profile {
-  const fallback: Profile = {
-    name: 'Võ Hào',
-    email: 'hao.vo@example.com',
-    joinedAt: '2024-12-01',
+function normalizeAvatarUrl(raw?: string | null): string | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value) return null;
+  // Chỉ chấp nhận http/https, tránh text thường gây alt text xấu
+  if (/^https?:\/\//i.test(value)) return value;
+  return null;
+}
+
+function loadExtras(userId: number): ProfileExtras {
+  const fallback: ProfileExtras = {
     penName: '',
     bio: '',
     genres: [],
   };
   try {
-    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+    const raw = localStorage.getItem(`${PROFILE_STORAGE_KEY}_${userId}`);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
-    if (!parsed?.name || !parsed?.email) return fallback;
     return {
-      name: String(parsed.name),
-      email: String(parsed.email),
-      joinedAt: String(parsed.joinedAt || fallback.joinedAt),
       penName: typeof parsed.penName === 'string' ? parsed.penName : fallback.penName,
       bio: typeof parsed.bio === 'string' ? parsed.bio : fallback.bio,
       genres: Array.isArray(parsed.genres) ? parsed.genres.map((g: unknown) => String(g)).filter(Boolean) : fallback.genres,
@@ -56,9 +70,9 @@ function loadProfile(): Profile {
   }
 }
 
-function saveProfile(profile: Profile) {
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-  window.dispatchEvent(new CustomEvent('storynest_profile_updated', { detail: profile }));
+function saveExtras(userId: number, extras: ProfileExtras) {
+  localStorage.setItem(`${PROFILE_STORAGE_KEY}_${userId}`, JSON.stringify(extras));
+  window.dispatchEvent(new CustomEvent('storynest_profile_updated', { detail: { userId, ...extras } }));
 }
 
 function getRoleFromPath(pathname: string): 'author' | 'admin' | 'staff' {
@@ -84,22 +98,221 @@ export default function ProfilePage() {
   const location = useLocation();
   const role = getRoleFromPath(location.pathname);
   const { toast } = useToast();
+  const { user, isAuthenticated, updateUser } = useAuth();
 
-  const [profile, setProfile] = useState<Profile>(() => loadProfile());
+  const [serverProfile, setServerProfile] = useState<UserProfile | null>(null);
+  const [extras, setExtras] = useState<ProfileExtras>({ penName: '', bio: '', genres: [] });
   const [editOpen, setEditOpen] = useState(false);
-  const [draft, setDraft] = useState<Profile>(() => loadProfile());
+  const [draftName, setDraftName] = useState('');
+  const [draftPenName, setDraftPenName] = useState('');
+  const [draftBio, setDraftBio] = useState('');
   const [genresInput, setGenresInput] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Đổi mật khẩu
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [changing, setChanging] = useState(false);
+  const [changeError, setChangeError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handler = () => setProfile(loadProfile());
-    window.addEventListener('storynest_profile_updated', handler);
-    return () => window.removeEventListener('storynest_profile_updated', handler);
-  }, []);
+    if (!isAuthenticated || !user) {
+      setIsLoading(false);
+      return;
+    }
 
-  const profileView = useMemo(() => ({
-    ...profile,
-    role,
-  }), [profile, role]);
+    let cancelled = false;
+
+    (async () => {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const res = await userApi.getProfile();
+        if (cancelled) return;
+        setServerProfile(res.data);
+        const loadedExtras = loadExtras(res.data.userId);
+        setExtras(loadedExtras);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : 'Không thể tải thông tin hồ sơ.';
+        setLoadError(msg);
+        toast({
+          variant: 'destructive',
+          title: 'Lỗi tải hồ sơ',
+          description: msg,
+        });
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
+    const handler = () => {
+      if (serverProfile) {
+        setExtras(loadExtras(serverProfile.userId));
+      }
+    };
+    window.addEventListener('storynest_profile_updated', handler);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('storynest_profile_updated', handler);
+    };
+  }, [isAuthenticated, user, toast]);
+
+  const profileView: ProfileView | null = useMemo(() => {
+    if (!serverProfile) return null;
+    const normalizedAvatar = normalizeAvatarUrl(serverProfile.avatarUrl);
+    return {
+      id: serverProfile.userId,
+      name: serverProfile.fullName,
+      email: serverProfile.email,
+      joinedAt: new Date(serverProfile.createdAt).toISOString().slice(0, 10),
+      role: serverProfile.role,
+      isActive: serverProfile.isActive,
+      avatarUrl: normalizedAvatar,
+      penName: extras.penName,
+      bio: extras.bio,
+      genres: extras.genres,
+    };
+  }, [serverProfile, extras]);
+
+  const handleOpenEdit = () => {
+    if (!profileView) return;
+    setDraftName(profileView.name);
+    setDraftPenName(profileView.penName || '');
+    setDraftBio(profileView.bio || '');
+    setGenresInput((profileView.genres || []).join(', '));
+    setEditOpen(true);
+  };
+
+  const handleSave = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!profileView || !serverProfile) return;
+
+    setIsSaving(true);
+    try {
+      const parsedGenres = genresInput
+        .split(',')
+        .map((g) => g.trim())
+        .filter(Boolean);
+
+      // Cập nhật profile trên server (tên, avatar). Chỉ lưu URL hợp lệ, ngược lại coi như xóa avatar.
+      const safeAvatar = normalizeAvatarUrl(profileView.avatarUrl ?? serverProfile.avatarUrl);
+      const res = await userApi.updateProfile(
+        draftName.trim() || serverProfile.fullName,
+        safeAvatar
+      );
+      setServerProfile(res.data);
+
+      // Cập nhật user trong AuthContext để đồng bộ tên/email/avatar
+      updateUser({
+        ...user!,
+        fullName: res.data.fullName,
+        email: res.data.email,
+        avatarUrl: res.data.avatarUrl ?? undefined,
+      });
+
+      // Lưu metadata thêm (penName, bio, genres) theo userId
+      const nextExtras: ProfileExtras = {
+        penName: draftPenName.trim(),
+        bio: draftBio.trim(),
+        genres: parsedGenres,
+      };
+      setExtras(nextExtras);
+      saveExtras(res.data.userId, nextExtras);
+
+      setEditOpen(false);
+      toast({
+        title: 'Cập nhật hồ sơ thành công',
+        description: 'Thông tin tài khoản của bạn đã được lưu.',
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể cập nhật hồ sơ. Vui lòng thử lại.';
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi cập nhật hồ sơ',
+        description: msg,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setChangeError(null);
+    setChanging(true);
+
+    try {
+      if (!isAuthenticated) {
+        setChangeError('Bạn cần đăng nhập để đổi mật khẩu');
+        return;
+      }
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        setChangeError('Vui lòng nhập đầy đủ thông tin');
+        return;
+      }
+      if (newPassword.length < 6) {
+        setChangeError('Mật khẩu mới phải có ít nhất 6 ký tự');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setChangeError('Mật khẩu xác nhận không khớp');
+        return;
+      }
+
+      const res = await authApi.changePassword(currentPassword, newPassword);
+      toast({
+        title: 'Đổi mật khẩu thành công',
+        description: res.message || 'Mật khẩu tài khoản của bạn đã được cập nhật.',
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Đổi mật khẩu thất bại. Vui lòng thử lại.';
+      setChangeError(errorMessage);
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi đổi mật khẩu',
+        description: errorMessage,
+      });
+    } finally {
+      setChanging(false);
+    }
+  };
+
+  if (!isAuthenticated || !user) {
+    return (
+      <DefaultLayout title="Profile" role={role}>
+        <div className="max-w-3xl mx-auto py-16 text-center space-y-4">
+          <h1 className="font-serif text-3xl font-bold text-foreground">Bạn chưa đăng nhập</h1>
+          <p className="text-muted-foreground">
+            Vui lòng đăng nhập để xem và chỉnh sửa hồ sơ tài khoản.
+          </p>
+        </div>
+      </DefaultLayout>
+    );
+  }
+
+  if (isLoading || !profileView) {
+    return (
+      <DefaultLayout title="Profile" role={role}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Đang tải hồ sơ của bạn...</span>
+          </div>
+        </div>
+      </DefaultLayout>
+    );
+  }
 
   return (
     <DefaultLayout title="Profile" role={role}>
@@ -114,40 +327,60 @@ export default function ProfilePage() {
             <CardContent className="p-8 relative">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
               <div className="relative z-10 flex items-start justify-between gap-4">
-                <div>
-                  <h1 className="font-serif text-3xl font-bold text-foreground mb-2">
-                    {profileView.name}
-                  </h1>
-                  <p className="text-muted-foreground">
-                    Manage your account details.
-                  </p>
-                  <div className="flex items-center gap-2 mt-4">
-                    <Badge variant="secondary" className="capitalize">{profileView.role}</Badge>
-                    <Badge variant="outline">Joined {profileView.joinedAt}</Badge>
+                <div className="flex items-start gap-4">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/80 via-primary to-amber-400 flex items-center justify-center overflow-hidden ring-2 ring-primary/40 shadow-lg">
+                    {profileView.avatarUrl && (
+                      <img
+                        src={profileView.avatarUrl}
+                        alt={profileView.name}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    {!profileView.avatarUrl && (
+                      <span className="text-2xl font-semibold text-primary-foreground">
+                        {getInitials(profileView.name)}
+                      </span>
+                    )}
                   </div>
-                  {(profileView.penName || (profileView.genres && profileView.genres.length > 0)) && (
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                      {profileView.penName && (
-                        <Badge variant="outline">Pen name: {profileView.penName}</Badge>
-                      )}
-                      {(profileView.genres || []).slice(0, 3).map((g) => (
-                        <Badge key={g} variant="secondary">{g}</Badge>
-                      ))}
-                      {(profileView.genres || []).length > 3 && (
-                        <Badge variant="secondary">+{(profileView.genres || []).length - 3}</Badge>
-                      )}
+                  <div>
+                    <h1 className="font-serif text-3xl font-bold text-foreground mb-2">
+                      {profileView.name}
+                    </h1>
+                    <p className="text-muted-foreground">
+                      Manage your account details.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-4">
+                      <Badge variant="secondary" className="capitalize">
+                        {profileView.role}
+                      </Badge>
+                      <Badge variant={profileView.isActive ? 'outline' : 'destructive'}>
+                        {profileView.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                      <Badge variant="outline">Joined {profileView.joinedAt}</Badge>
                     </div>
-                  )}
+                    {(profileView.penName || (profileView.genres && profileView.genres.length > 0)) && (
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
+                        {profileView.penName && (
+                          <Badge variant="outline">Pen name: {profileView.penName}</Badge>
+                        )}
+                        {(profileView.genres || []).slice(0, 3).map((g) => (
+                          <Badge key={g} variant="secondary">
+                            {g}
+                          </Badge>
+                        ))}
+                        {(profileView.genres || []).length > 3 && (
+                          <Badge variant="secondary">
+                            +{(profileView.genres || []).length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <Button
                   variant="outline"
                   className="gap-2"
-                  onClick={() => {
-                    const current = loadProfile();
-                    setDraft(current);
-                    setGenresInput((current.genres || []).join(', '));
-                    setEditOpen(true);
-                  }}
+                  onClick={handleOpenEdit}
                 >
                   <Pencil className="w-4 h-4" />
                   Edit Profile
@@ -224,23 +457,95 @@ export default function ProfilePage() {
           <Card variant="elevated">
             <CardHeader>
               <CardTitle>Security</CardTitle>
-              <CardDescription>Manage basic security settings</CardDescription>
+              <CardDescription>Quản lý bảo mật tài khoản</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Password</p>
-                  <p className="text-xs text-muted-foreground">Change your account password</p>
+            <CardContent className="space-y-4">
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                {changeError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{changeError}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Mật khẩu hiện tại</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      type={showCurrent ? 'text' : 'password'}
+                      className="pl-11 pr-11"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      disabled={changing}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrent((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      disabled={changing}
+                    >
+                      {showCurrent ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
-                <Button variant="outline" size="sm">Change</Button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Two-factor</p>
-                  <p className="text-xs text-muted-foreground">Enable 2FA (coming soon)</p>
+
+                <div className="space-y-2">
+                  <Label>Mật khẩu mới</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      type={showNew ? 'text' : 'password'}
+                      className="pl-11 pr-11"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={changing}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNew((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      disabled={changing}
+                    >
+                      {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Tối thiểu 6 ký tự.</p>
                 </div>
-                <Button variant="ghost" size="sm" disabled>Enable</Button>
-              </div>
+
+                <div className="space-y-2">
+                  <Label>Xác nhận mật khẩu mới</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      type={showConfirm ? 'text' : 'password'}
+                      className="pl-11 pr-11"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={changing}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      disabled={changing}
+                    >
+                      {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <Button type="submit" variant="gradient" disabled={changing}>
+                  {changing ? (
+                    <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  ) : (
+                    'Đổi mật khẩu'
+                  )}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </motion.div>
@@ -248,46 +553,58 @@ export default function ProfilePage() {
 
       {/* Edit Profile Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
-            
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="profile_name">Name</Label>
-              <Input
-                id="profile_name"
-                value={draft.name}
-                onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Your name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="profile_pen_name">Pen name</Label>
-              <Input
-                id="profile_pen_name"
-                value={draft.penName || ''}
-                onChange={(e) => setDraft((p) => ({ ...p, penName: e.target.value }))}
-                placeholder="e.g. A. Writer"
-              />
-              <p className="text-xs text-muted-foreground">
-                Optional. Used for display/export. Does not change your manuscript content.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="profile_email">Email</Label>
-              <Input
-                id="profile_email"
-                type="email"
-                value={profile.email}
-                disabled
-                placeholder="you@example.com"
-              />
-              <p className="text-xs text-muted-foreground">
-                Email changes require verification and are disabled in this demo.
-              </p>
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="profile_name">Name</Label>
+                <Input
+                  id="profile_name"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  placeholder="Your name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="profile_pen_name">Pen name</Label>
+                <Input
+                  id="profile_pen_name"
+                  value={draftPenName}
+                  onChange={(e) => setDraftPenName(e.target.value)}
+                  placeholder="e.g. A. Writer"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional. Chỉ dùng để hiển thị trong UI, không thay đổi nội dung bản thảo.
+                </p>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="profile_avatar">Avatar URL</Label>
+                <Input
+                  id="profile_avatar"
+                  type="url"
+                  value={profileView.avatarUrl || ''}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    // Cập nhật tạm avatar trong view để user xem preview, thực tế sẽ lưu khi submit
+                    if (serverProfile) {
+                      setServerProfile({
+                        ...serverProfile,
+                        avatarUrl: value || '',
+                      });
+                    }
+                  }}
+                  placeholder="https://..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional. Liên kết đến ảnh đại diện của bạn.
+                </p>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="profile_genres">Genres / tags</Label>
@@ -298,58 +615,39 @@ export default function ProfilePage() {
                 placeholder="e.g. Fantasy, Romance, Thriller"
               />
               <p className="text-xs text-muted-foreground">
-                Comma-separated. Used to improve recommendations and AI context (UI metadata only).
+                Ngăn cách bằng dấu phẩy. Dùng để gợi ý và cung cấp thêm ngữ cảnh cho AI (metadata phía client).
               </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="profile_bio">Bio</Label>
               <Textarea
                 id="profile_bio"
-                value={draft.bio || ''}
-                onChange={(e) => setDraft((p) => ({ ...p, bio: e.target.value }))}
+                value={draftBio}
+                onChange={(e) => setDraftBio(e.target.value)}
                 placeholder="A short bio about you as an author..."
                 rows={4}
               />
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEditOpen(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="gradient"
-              onClick={() => {
-                const parsedGenres = genresInput
-                  .split(',')
-                  .map((g) => g.trim())
-                  .filter(Boolean);
-
-                const next: Profile = {
-                  name: draft.name.trim() || 'Unnamed',
-                  email: profile.email,
-                  joinedAt: profile.joinedAt,
-                  penName: (draft.penName || '').trim(),
-                  bio: (draft.bio || '').trim(),
-                  genres: parsedGenres,
-                };
-                saveProfile(next);
-                setProfile(next);
-                setEditOpen(false);
-                toast({
-                  title: 'Profile updated',
-                  description: 'Your changes have been saved.',
-                });
-              }}
-            >
-              Save
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="gradient" disabled={isSaving}>
+                {isSaving ? (
+                  <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </DefaultLayout>
