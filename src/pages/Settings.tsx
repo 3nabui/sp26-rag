@@ -1,15 +1,13 @@
-import { FormEvent, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bell, Shield, Palette, Globe, Save, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Bell, Shield, Palette, Globe, Save } from 'lucide-react';
 import { DefaultLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTheme } from 'next-themes';
-import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -17,9 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { authApi } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 
 function getRoleFromPath(pathname: string): 'author' | 'admin' | 'staff' {
   if (pathname.startsWith('/admin')) return 'admin';
@@ -42,10 +37,8 @@ const itemVariants = {
 
 export default function SettingsPage() {
   const location = useLocation();
-  const navigate = useNavigate();
   const role = getRoleFromPath(location.pathname);
   const { theme: activeTheme = 'system', setTheme: setAppTheme } = useTheme();
-  const { isAuthenticated } = useAuth();
 
   const defaults = useMemo(() => ({
     emailNotifications: true,
@@ -56,52 +49,6 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(defaults.emailNotifications);
   const [productUpdates, setProductUpdates] = useState(defaults.productUpdates);
   const [securityAlerts, setSecurityAlerts] = useState(defaults.securityAlerts);
-
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [changing, setChanging] = useState(false);
-  const [changeError, setChangeError] = useState<string | null>(null);
-
-  const handleChangePassword = async (e: FormEvent) => {
-    e.preventDefault();
-    setChangeError(null);
-    setChanging(true);
-
-    try {
-      if (!isAuthenticated) {
-        setChangeError('Bạn cần đăng nhập để đổi mật khẩu');
-        return;
-      }
-      if (!currentPassword || !newPassword || !confirmPassword) {
-        setChangeError('Vui lòng nhập đầy đủ thông tin');
-        return;
-      }
-      if (newPassword.length < 6) {
-        setChangeError('Mật khẩu mới phải có ít nhất 6 ký tự');
-        return;
-      }
-      if (newPassword !== confirmPassword) {
-        setChangeError('Mật khẩu xác nhận không khớp');
-        return;
-      }
-
-      const res = await authApi.changePassword(currentPassword, newPassword);
-      toast.success(res.message || 'Đổi mật khẩu thành công');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Đổi mật khẩu thất bại. Vui lòng thử lại.';
-      setChangeError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setChanging(false);
-    }
-  };
 
   return (
     <DefaultLayout title="Settings" role={role}>
@@ -191,117 +138,6 @@ export default function SettingsPage() {
                 </div>
                 <Switch checked={securityAlerts} onCheckedChange={setSecurityAlerts} />
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <Card variant="elevated">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-success" />
-                Bảo mật
-              </CardTitle>
-              <CardDescription>Đổi mật khẩu tài khoản</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!isAuthenticated ? (
-                <div className="space-y-3">
-                  <div className="text-sm text-muted-foreground">
-                    Bạn cần đăng nhập để sử dụng chức năng đổi mật khẩu.
-                  </div>
-                  <Button variant="outline" onClick={() => navigate('/login')}>
-                    Đi tới đăng nhập
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={handleChangePassword} className="space-y-4">
-                  {changeError && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{changeError}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label>Mật khẩu hiện tại</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        type={showCurrent ? 'text' : 'password'}
-                        className="pl-11 pr-11"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        disabled={changing}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrent((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        disabled={changing}
-                      >
-                        {showCurrent ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Mật khẩu mới</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        type={showNew ? 'text' : 'password'}
-                        className="pl-11 pr-11"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        disabled={changing}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNew((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        disabled={changing}
-                      >
-                        {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Tối thiểu 6 ký tự.</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Xác nhận mật khẩu mới</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        type={showConfirm ? 'text' : 'password'}
-                        className="pl-11 pr-11"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={changing}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirm((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        disabled={changing}
-                      >
-                        {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button type="submit" variant="gradient" disabled={changing}>
-                    {changing ? (
-                      <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    ) : (
-                      'Đổi mật khẩu'
-                    )}
-                  </Button>
-                </form>
-              )}
             </CardContent>
           </Card>
         </motion.div>
