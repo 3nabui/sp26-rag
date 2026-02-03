@@ -39,8 +39,8 @@ const adminNavItems: NavItem[] = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
   { label: 'Users', path: '/admin/users', icon: <Users className="w-5 h-5" /> },
   { label: 'Configuration', path: '/admin/config', icon: <Settings className="w-5 h-5" /> },
-  { label: 'Profile', path: '/profile', icon: <UserIcon className="w-5 h-5" /> },
-  { label: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5" /> },
+  { label: 'Profile', path: '/admin/profile', icon: <UserIcon className="w-5 h-5" /> },
+  { label: 'Settings', path: '/admin/settings', icon: <Settings className="w-5 h-5" /> },
 ];
 
 const staffNavItems: NavItem[] = [
