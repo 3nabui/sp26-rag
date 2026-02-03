@@ -1,48 +1,61 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Search, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Users, ShieldCheck, ShieldOff, Loader2 } from 'lucide-react';
 import { DefaultLayout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { adminApi, AdminUserListItem } from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-type Role = 'author' | 'staff' | 'admin';
+type RoleFilter = 'all' | 'Author' | 'Staff' | 'Admin';
 
-interface UserRow {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
-  status: 'active' | 'disabled';
-  lastActive: string;
-}
-
-const mockUsers: UserRow[] = [
-  { id: 'U-1001', name: 'Võ Hào', email: 'hao@example.com', role: 'author', status: 'active', lastActive: '09:10' },
-  { id: 'U-1002', name: 'Nguyễn An', email: 'an@example.com', role: 'staff', status: 'active', lastActive: '09:05' },
-  { id: 'U-1003', name: 'Trần Minh', email: 'minh@example.com', role: 'author', status: 'disabled', lastActive: 'Yesterday' },
-  { id: 'U-1004', name: 'Lê Quang', email: 'quang@example.com', role: 'author', status: 'active', lastActive: '08:40' },
-  { id: 'U-1005', name: 'Admin Root', email: 'root@example.com', role: 'admin', status: 'active', lastActive: '08:10' },
-];
-
-const roleLabels: Record<Role, string> = {
-  author: 'Author',
-  staff: 'Staff',
-  admin: 'Admin',
+const roleLabels: Record<'Author' | 'Staff' | 'Admin', string> = {
+  Author: 'Author',
+  Staff: 'Staff',
+  Admin: 'Admin',
 };
 
 export default function AdminUsers() {
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | Role>('all');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+  const [users, setUsers] = useState<AdminUserListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    return mockUsers.filter((u) => {
-      const matchText = (u.name + u.email).toLowerCase().includes(search.toLowerCase());
-      const matchRole = roleFilter === 'all' ? true : u.role === roleFilter;
-      return matchText && matchRole;
-    });
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await adminApi.getUsers({
+          pageNumber: 1,
+          pageSize: 20,
+          searchTerm: search || undefined,
+          role: roleFilter === 'all' ? undefined : roleFilter,
+          includeInactive: true,
+        });
+        setUsers(res.data);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : 'Không thể tải danh sách người dùng.';
+        setError(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsers();
   }, [search, roleFilter]);
+
+  const filtered = useMemo(() => users, [users]);
 
   return (
     <DefaultLayout title="User Management" role="admin">
@@ -64,35 +77,47 @@ export default function AdminUsers() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-48"
               />
-              <select
+              <Select
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as any)}
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                onValueChange={(val) => setRoleFilter(val as RoleFilter)}
               >
-                <option value="all">All Roles</option>
-                <option value="author">Author</option>
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-              </select>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="All Roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="Author">Author</SelectItem>
+                  <SelectItem value="Staff">Staff</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
               <Button variant="outline" size="sm" className="gap-2">
                 <Users className="w-4 h-4" /> Add User
               </Button>
             </div>
           </CardHeader>
           <CardContent className="overflow-x-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Đang tải danh sách người dùng...</span>
+              </div>
+            ) : error ? (
+              <div className="py-6 text-sm text-destructive">{error}</div>
+            ) : (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-2 text-sm text-muted-foreground">User</th>
                   <th className="text-left py-3 px-2 text-sm text-muted-foreground">Email</th>
-                  <th className="text-left py-3 px-2 text-sm text-muted-foreground">Role</th>
-                  <th className="text-left py-3 px-2 text-sm text-muted-foreground">Status</th>
+                  <th className="text-center py-3 px-2 text-sm text-muted-foreground">Role</th>
+                  <th className="text-center py-3 px-2 text-sm text-muted-foreground">Status</th>
                   <th className="text-left py-3 px-2 text-sm text-muted-foreground">Last Active</th>
-                  <th className="text-right py-3 px-2 text-sm text-muted-foreground">Actions</th>
+                  <th className="text-center py-3 px-4 text-sm text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((user, idx) => (
+              {filtered.map((user, idx) => (
                   <motion.tr
                     key={user.id}
                     initial={{ opacity: 0 }}
@@ -100,32 +125,39 @@ export default function AdminUsers() {
                     transition={{ delay: idx * 0.03 }}
                     className="border-b border-border/50 hover:bg-secondary/30"
                   >
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-2 align-middle">
                       <div className="flex items-center gap-2">
                         <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold">
-                          {user.name[0]}
+                          {user.fullName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">{user.id}</p>
+                          <p className="font-medium text-foreground">{user.fullName}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-sm text-muted-foreground">{user.email}</td>
-                    <td className="py-3 px-2">
-                      <Badge variant="secondary" className="capitalize">{roleLabels[user.role]}</Badge>
+                    <td className="py-3 px-2 align-middle text-sm text-muted-foreground">{user.email}</td>
+                    <td className="py-3 px-2 align-middle text-center">
+                      <Badge variant="secondary" className="capitalize inline-flex justify-center min-w-[72px]">
+                        {roleLabels[user.role as 'Author' | 'Staff' | 'Admin']}
+                      </Badge>
                     </td>
-                    <td className="py-3 px-2">
-                      {user.status === 'active' ? (
-                        <Badge variant="outline" className="bg-success/10 text-success border-success/20">Active</Badge>
+                    <td className="py-3 px-2 align-middle text-center">
+                      {user.isActive ? (
+                        <Badge variant="outline" className="bg-success/10 text-success border-success/20 inline-flex justify-center min-w-[80px]">
+                          Active
+                        </Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-muted text-muted-foreground border-border">Disabled</Badge>
+                        <Badge variant="outline" className="bg-muted text-muted-foreground border-border inline-flex justify-center min-w-[80px]">
+                          Disabled
+                        </Badge>
                       )}
                     </td>
-                    <td className="py-3 px-2 text-sm text-muted-foreground">{user.lastActive}</td>
-                    <td className="py-3 px-2">
-                      <div className="flex items-center justify-end gap-2">
-                        {user.status === 'active' ? (
+                    <td className="py-3 px-2 align-middle text-sm text-muted-foreground">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-3 px-4 align-middle text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        {user.isActive ? (
                           <Button variant="ghost" size="sm" className="text-destructive gap-1">
                             <ShieldOff className="w-4 h-4" /> Disable
                           </Button>
@@ -140,6 +172,7 @@ export default function AdminUsers() {
                 ))}
               </tbody>
             </table>
+            )}
           </CardContent>
         </Card>
       </motion.div>

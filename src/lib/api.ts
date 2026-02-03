@@ -25,6 +25,28 @@ export interface UserProfile {
   isActive: boolean;
 }
 
+export interface AdminUserListItem {
+  userId: number;
+  fullName: string;
+  email: string;
+  avatarUrl?: string | null;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  totalProjects: number;
+}
+
+export interface AdminUserListResponse {
+  message: string;
+  data: AdminUserListItem[];
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
+}
+
 // API Client class
 class ApiClient {
   private baseURL: string;
@@ -181,5 +203,30 @@ export const userApi = {
       FullName: fullName,
       AvatarUrl: avatarUrl,
     });
+  },
+};
+
+// Admin API functions
+export const adminApi = {
+  getUsers: async (params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    searchTerm?: string;
+    role?: string;
+    includeInactive?: boolean;
+  }): Promise<AdminUserListResponse> => {
+    const query = new URLSearchParams();
+    if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber));
+    if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+    if (params?.searchTerm) query.set('searchTerm', params.searchTerm);
+    if (params?.role) query.set('role', params.role);
+    if (typeof params?.includeInactive === 'boolean') {
+      query.set('includeInactive', String(params.includeInactive));
+    }
+
+    const qs = query.toString();
+    const endpoint = qs ? `/api/Admin/users?${qs}` : '/api/Admin/users';
+
+    return apiClient.get<AdminUserListResponse>(endpoint);
   },
 };

@@ -112,6 +112,8 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
   const profilePath =
     accountBase === '/staff'
       ? '/staff/profile'
+      : accountBase === '/admin'
+      ? '/admin/profile'
       : '/profile';
 
   const settingsPath =
@@ -119,6 +121,8 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
       ? '/staff/settings'
       : accountBase === '/author'
       ? '/author/settings'
+      : accountBase === '/admin'
+      ? '/admin/settings'
       : '/settings';
 
   const displayName = isAuthenticated
