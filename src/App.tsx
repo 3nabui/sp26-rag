@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPasswordPage from "./pages/ForgotPassword";
+import ResetPasswordPage from "./pages/ResetPassword";
 import { AuthorDashboard, UploadPage, AnalysisPage, ChatbotPage } from "./pages/author";
 import StaffReviewPage from "./pages/staff/Review";
 import StaffContentPage from "./pages/staff/Content";
@@ -30,6 +32,8 @@ const App = () => (
           {/* Auth routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           
           {/* Author routes */}
           <Route path="/author/dashboard" element={<AuthorDashboard />} />
@@ -54,6 +58,7 @@ const App = () => (
           {/* Account routes */}
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/author/settings" element={<SettingsPage />} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
