@@ -1,28 +1,73 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const getRoleRoute = (role: string): string => {
+    const roleMap: Record<string, string> = {
+      Admin: '/admin/dashboard',
+      Staff: '/staff/review',
+      Author: '/author/dashboard',
+    };
+    return roleMap[role] || '/author/dashboard';
+  };
+
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
-    // Simulate login
-    setTimeout(() => {
-      navigate('/author/dashboard');
-    }, 1000);
+
+    try {
+      if (!email || !password) {
+        setError('Vui lòng nhập đầy đủ email và mật khẩu');
+        setIsLoading(false);
+        return;
+      }
+
+      await login(email, password);
+      
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        const route = getRoleRoute(user.role);
+        toast.success('Đăng nhập thành công', {
+          description: `Chào mừng quay lại, ${user.fullName || user.email}!`,
+          icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+        });
+        navigate(route);
+      } else {
+        toast.success('Đăng nhập thành công', {
+          description: 'Bạn đã được chuyển tới trang chính.',
+          icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+        });
+        navigate('/author/dashboard');
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Đăng nhập thất bại. Vui lòng thử lại.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left side - Login Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -30,7 +75,6 @@ export default function Login() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
             <img 
               src="/logo-storynest.png" 
@@ -43,7 +87,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Welcome Text */}
           <div className="mb-8">
             <h2 className="font-serif text-3xl font-bold text-foreground mb-2">
               Welcome Back
@@ -52,12 +95,16 @@ export default function Login() {
               Sign in to continue analyzing your manuscript
             </p>
           </div>
-
-          {/* Login Form */}
           <Card variant="glass" className="p-6">
             <CardContent className="p-0">
               <form onSubmit={handleLogin} className="space-y-4">
-                {/* Email */}
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Email</label>
                   <div className="relative">
@@ -66,16 +113,23 @@ export default function Login() {
                       type="email" 
                       placeholder="example@email.com"
                       className="pl-11"
-                      defaultValue="an.nguyen@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
 
-                {/* Password */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium text-foreground">Password</label>
-                    <button type="button" className="text-sm text-primary hover:underline">
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={() => navigate('/forgot-password')}
+                      disabled={isLoading}
+                    >
                       Forgot password?
                     </button>
                   </div>
@@ -85,19 +139,21 @@ export default function Login() {
                       type={showPassword ? 'text' : 'password'} 
                       placeholder="••••••••"
                       className="pl-11 pr-11"
-                      defaultValue="password123"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      disabled={isLoading}
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
-
-                {/* Submit */}
                 <Button 
                   type="submit" 
                   variant="gradient" 
@@ -116,7 +172,6 @@ export default function Login() {
                 </Button>
               </form>
 
-              {/* Divider */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-border" />
@@ -126,7 +181,6 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Social Login */}
               <div className="grid grid-cols-2 gap-3">
                 <Button variant="outline" className="h-11">
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -144,8 +198,6 @@ export default function Login() {
                   GitHub
                 </Button>
               </div>
-
-              {/* Register Link */}
               <p className="text-center text-sm text-muted-foreground mt-6">
                 Don't have an account?{' '}
                 <Link to="/register" className="text-primary font-medium hover:underline">
@@ -157,9 +209,7 @@ export default function Login() {
         </motion.div>
       </div>
 
-      {/* Right side - Visual */}
       <div className="hidden lg:flex flex-1 items-center justify-center p-8 bg-gradient-to-br from-secondary to-muted relative overflow-hidden">
-        {/* Background decoration */}
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
@@ -171,7 +221,6 @@ export default function Login() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="relative z-10 text-center max-w-lg"
         >
-          {/* Decorative logo */}
           <div className="w-24 h-24 mx-auto mb-8 flex items-center justify-center animate-pulse-glow">
             <img 
               src="/logo-storynest.png" 
@@ -187,7 +236,6 @@ export default function Login() {
             Advanced RAG system helps you understand pacing, emotions, and characters in your work more deeply.
           </p>
 
-          {/* Quote */}
           <div className="glass rounded-xl p-6 text-left">
             <p className="text-foreground italic mb-3">
               "Every story has its own soul. AI helps me see things I never noticed in my own work."
