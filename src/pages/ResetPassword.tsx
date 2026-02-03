@@ -1,70 +1,53 @@
-import { useState, FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { FormEvent, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, User as UserIcon, AlertCircle } from 'lucide-react';
+import { ArrowRight, KeyRound, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/contexts/AuthContext';
+import { authApi } from '@/lib/api';
 import { toast } from 'sonner';
 
-export default function Register() {
+export default function ResetPasswordPage() {
   const navigate = useNavigate();
-  const { register } = useAuth();
-  const [showPassword, setShowPassword] = useState(false);
+  const [params] = useSearchParams();
+  const tokenFromQuery = params.get('token') || '';
+
+  const [token, setToken] = useState(tokenFromQuery);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const isTokenPrefilled = useMemo(() => tokenFromQuery.length > 0, [tokenFromQuery]);
 
-  const getRoleRoute = (role: string): string => {
-    const roleMap: Record<string, string> = {
-      Admin: '/admin/dashboard',
-      Staff: '/staff/review',
-      Author: '/author/dashboard',
-    };
-    return roleMap[role] || '/author/dashboard';
-  };
-
-  const handleRegister = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
     try {
-      if (!fullName || !email || !password || !confirmPassword) {
-        setError('Vui lòng nhập đầy đủ thông tin');
+      if (!token) {
+        setError('Vui lòng nhập token');
         return;
       }
-
-      if (password.length < 6) {
-        setError('Mật khẩu phải có ít nhất 6 ký tự');
+      if (newPassword.length < 6) {
+        setError('Mật khẩu mới phải có ít nhất 6 ký tự');
         return;
       }
-
-      if (password !== confirmPassword) {
+      if (newPassword !== confirmPassword) {
         setError('Mật khẩu xác nhận không khớp');
         return;
       }
 
-      await register(fullName, email, password);
-
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        const route = getRoleRoute(user.role);
-        toast.success('Đăng ký thành công!');
-        navigate(route);
-      } else {
-        navigate('/author/dashboard');
-      }
+      const res = await authApi.resetPassword(token, newPassword);
+      toast.success(res.message || 'Đặt lại mật khẩu thành công');
+      navigate('/login');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Đăng ký thất bại. Vui lòng thử lại.';
+      const errorMessage = err instanceof Error ? err.message : 'Không thể đặt lại mật khẩu. Vui lòng thử lại.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -74,7 +57,6 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left side - Register Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -82,11 +64,10 @@ export default function Register() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <img 
-              src="/logo-storynest.png" 
-              alt="StoryNest Logo" 
+            <img
+              src="/logo-storynest.png"
+              alt="StoryNest Logo"
               className="w-12 h-12 object-contain"
             />
             <div>
@@ -95,93 +76,75 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Welcome Text */}
           <div className="mb-8">
-            <h2 className="font-serif text-3xl font-bold text-foreground mb-2">
-              Create New Account
-            </h2>
+            <h2 className="font-serif text-3xl font-bold text-foreground mb-2">Đặt lại mật khẩu</h2>
             <p className="text-muted-foreground">
-              Sign up to start analyzing your manuscript with AI
+              Nhập token và mật khẩu mới để hoàn tất quá trình đặt lại.
             </p>
           </div>
 
-          {/* Register Form */}
           <Card variant="glass" className="p-6">
             <CardContent className="p-0">
-              <form onSubmit={handleRegister} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
-                {/* Full name */}
+
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Full Name</label>
+                  <label className="text-sm font-medium text-foreground">Token</label>
                   <div className="relative">
-                    <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       type="text"
-                      placeholder="e.g., John Doe"
+                      placeholder="Dán token tại đây"
                       className="pl-11"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
                       required
-                      disabled={isLoading}
+                      disabled={isLoading || isTokenPrefilled}
                     />
                   </div>
+                  {isTokenPrefilled && (
+                    <p className="text-xs text-muted-foreground">
+                      Token được điền sẵn từ link. Nếu bạn muốn dùng token khác, hãy mở trang này không kèm query.
+                    </p>
+                  )}
                 </div>
 
-                {/* Email */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="example@email.com"
-                      className="pl-11"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Password</label>
+                  <label className="text-sm font-medium text-foreground">Mật khẩu mới</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="At least 6 characters"
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="Ít nhất 6 ký tự"
                       className="pl-11 pr-11"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
                       required
                       disabled={isLoading}
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowNewPassword((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       disabled={isLoading}
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
 
-                {/* Confirm Password */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Confirm Password</label>
+                  <label className="text-sm font-medium text-foreground">Xác nhận mật khẩu</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="Re-enter password"
+                      placeholder="Nhập lại mật khẩu mới"
                       className="pl-11 pr-11"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -190,7 +153,7 @@ export default function Register() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() => setShowConfirmPassword((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       disabled={isLoading}
                     >
@@ -199,7 +162,6 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* Submit */}
                 <Button
                   type="submit"
                   variant="gradient"
@@ -211,18 +173,17 @@ export default function Register() {
                     <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   ) : (
                     <>
-                      Sign Up
+                      Đặt lại mật khẩu
                       <ArrowRight className="w-5 h-5" />
                     </>
                   )}
                 </Button>
               </form>
 
-              {/* Already have account */}
               <p className="text-center text-sm text-muted-foreground mt-6">
-                Already have an account?{' '}
+                Quay lại{' '}
                 <Link to="/login" className="text-primary font-medium hover:underline">
-                  Sign in
+                  đăng nhập
                 </Link>
               </p>
             </CardContent>
@@ -230,9 +191,7 @@ export default function Register() {
         </motion.div>
       </div>
 
-      {/* Right side - Visual (reuse style from Login) */}
       <div className="hidden lg:flex flex-1 items-center justify-center p-8 bg-gradient-to-br from-secondary to-muted relative overflow-hidden">
-        {/* Background decoration */}
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
@@ -244,38 +203,19 @@ export default function Register() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="relative z-10 text-center max-w-lg"
         >
-          {/* Decorative logo */}
           <div className="w-24 h-24 mx-auto mb-8 flex items-center justify-center animate-pulse-glow">
-            <img 
-              src="/logo-storynest.png" 
-              alt="StoryNest Logo" 
+            <img
+              src="/logo-storynest.png"
+              alt="StoryNest Logo"
               className="w-full h-full object-contain"
             />
           </div>
-
           <h3 className="font-serif text-3xl font-bold text-foreground mb-4">
-            Start Your Journey<br />Analyzing Stories with AI
+            Mật khẩu mới<br />mở ra hành trình mới
           </h3>
           <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-            Create a free account to discover how AI helps you understand pacing,
-            emotions, and characters in your work more deeply.
+            Đặt lại mật khẩu xong, bạn có thể đăng nhập và tiếp tục phân tích bản thảo với AI.
           </p>
-
-          {/* Quote */}
-          <div className="glass rounded-xl p-6 text-left">
-            <p className="text-foreground italic mb-3">
-              "Signing up takes just seconds, but the insights from AI can change the entire way I write stories."
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">SA</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">Sarah Anderson</p>
-                <p className="text-xs text-muted-foreground">Emerging Author</p>
-              </div>
-            </div>
-          </div>
         </motion.div>
       </div>
     </div>
