@@ -1,0 +1,31 @@
+{
+  "app": {
+    "projects": "Dự án",
+    "create": "Tạo",
+    "import": "Nhập",
+    "search": "Tìm kiếm",
+    "trash": "Thùng rác"
+  },
+  "projectEditor": {
+    "storyBible": "Story Bible",
+    "createVersion": "Tạo Version Mới",
+    "versionNamePlaceholder": "Ví dụ: Draft 1, Version 2, Final...",
+    "newChapter": "Tạo chương mới",
+    "cancel": "Hủy",
+    "done": "Xong",
+    "addCharacter": "Thêm Character",
+    "addWorldSetting": "Thêm World Setting",
+    "selectGenre": "Chọn Genre",
+    "chooseGenres": "Chọn các thể loại phù hợp với tác phẩm của bạn",
+    "noCharacters": "Chưa có character nào",
+    "noWorldSettings": "Chưa có world setting nào",
+    "chooseChapter": "Chọn một chapter",
+    "startWriting": "Bắt đầu viết tác phẩm của bạn...",
+    "wordCount": "{count} từ"
+  },
+  "storyBible": {
+    "genre": "Thể loại",
+    "characters": "Nhân vật",
+    "worldbuilding": "Xây dựng thế giới"
+  }
+}

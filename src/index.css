@@ -296,3 +296,139 @@
     }
   }
 }
+
+/* TipTap Editor Styles */
+.tiptap {
+  outline: none;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: hsl(var(--card-foreground));
+  background: transparent;
+}
+
+/* Improve contrast in dark mode for editor text and set lighter background when needed */
+.dark .tiptap {
+  color: hsl(var(--card-foreground));
+}
+
+.tiptap .ProseMirror {
+  background: hsl(var(--card) / 0.12);
+  color: inherit;
+  padding: 2.25rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 6px 22px -10px rgba(15,23,42,0.35);
+}
+
+.dark .tiptap .ProseMirror {
+  /* slightly stronger overlay in dark mode for even contrast */
+  background: hsl(var(--card) / 0.14);
+  box-shadow: 0 8px 28px -12px rgba(0,0,0,0.55);
+}
+
+/* Editor toolbar adjustments for dark mode to be lighter and uniform */
+.editor-toolbar {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.dark .editor-toolbar {
+  background-color: hsl(var(--card) / 0.14) !important;
+  border-bottom: 1px solid hsl(var(--sidebar-border) / 0.6) !important;
+}
+
+/* Ensure editor text remains high-contrast in dark mode */
+.dark .tiptap, .dark .tiptap .ProseMirror {
+  color: hsl(var(--card-foreground));
+}
+
+.tiptap p {
+  margin-bottom: 1rem;
+}
+
+.tiptap h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+}
+
+.tiptap h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.tiptap h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.tiptap strong {
+  font-weight: 700;
+}
+
+.tiptap em {
+  font-style: italic;
+}
+
+.tiptap u {
+  text-decoration: underline;
+}
+
+.tiptap s {
+  text-decoration: line-through;
+}
+
+.tiptap ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.tiptap ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.tiptap li {
+  margin-bottom: 0.25rem;
+}
+
+.tiptap li p {
+  margin-bottom: 0.25rem;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid hsl(38 88% 44%);
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: hsl(215 16% 40%);
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  color: hsl(215 16% 60%);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Dark-mode overrides for Tailwind bg-white utilities used in the editor layout.
+   Maps white backgrounds to the semantic --card token so panels respect dark theme. */
+.dark .bg-white\/60 { background-color: hsl(var(--card) / 0.6) !important; }
+.dark .bg-white\/80 { background-color: hsl(var(--card) / 0.8) !important; }
+.dark .bg-white\/90 { background-color: hsl(var(--card) / 0.9) !important; }
+.dark .bg-white\/40 { background-color: hsl(var(--card) / 0.4) !important; }
+.dark .bg-white\/50 { background-color: hsl(var(--card) / 0.5) !important; }
+
+/* Also override semi-transparent white backgrounds often used with backdrop blur */
+.dark .bg-white\/60\.backdrop-blur-sm { background-color: hsl(var(--card) / 0.6) !important; }
+

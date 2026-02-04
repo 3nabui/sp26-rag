@@ -8,7 +8,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPasswordPage from "./pages/ForgotPassword";
 import ResetPasswordPage from "./pages/ResetPassword";
-import { AuthorDashboard, UploadPage, AnalysisPage, ChatbotPage } from "./pages/author";
+import { AuthorDashboard, ProjectsPage, ProjectEditor, UploadPage, AnalysisPage, ChatbotPage } from "./pages/author";
 import StaffReviewPage from "./pages/staff/Review";
 import StaffContentPage from "./pages/staff/Content";
 import { AdminDashboard, AdminConfig, AdminUsers } from "./pages/admin";
@@ -36,6 +36,8 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           
           {/* Author routes */}
+          <Route path="/author/projects" element={<ProjectsPage />} />
+          <Route path="/author/project/:projectId" element={<ProjectEditor />} />
           <Route path="/author/dashboard" element={<AuthorDashboard />} />
           <Route path="/author/upload" element={<UploadPage />} />
           <Route path="/author/analysis" element={<AnalysisPage />} />
