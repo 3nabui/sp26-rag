@@ -64,16 +64,26 @@ export interface ProjectResponse {
   authorName?: string;
   totalChapters?: number;
   totalChatSessions?: number;
-  genres?: any[];
+  genres?: Genre[];
+}
+
+// Genre DTO
+export interface Genre {
+  genreId?: number;
+  name: string;
+  description?: string;
 }
 
 // Chapter DTO
 export interface ChapterResponse {
   chapterId?: string | number;
+  chapterID?: string | number;
   id?: string | number;
   projectId?: string | number;
+  projectID?: string | number;
   title: string;
-  content?: string | null;
+  summary?: string | null;
+  chapterNo?: number;
   chapterNumber?: number;
   wordCount?: number;
   status?: string;
@@ -286,7 +296,7 @@ export const projectApi = {
     summary?: string;
     coverImageUrl?: string;
   }): Promise<{ message: string; data: ProjectResponse }> => {
-    const body: Record<string, any> = { title: payload.title };
+    const body: Record<string, unknown> = { title: payload.title };
     if (payload.summary !== undefined && payload.summary !== '') {
       body.summary = payload.summary;
     }
@@ -301,7 +311,7 @@ export const projectApi = {
     coverImageUrl?: string | null;
     status?: string;
   }): Promise<{ message: string; data: ProjectResponse }> => {
-    const body: Record<string, any> = {};
+    const body: Record<string, unknown> = {};
     if (payload.title !== undefined) {
       body.title = payload.title;
     }
@@ -325,11 +335,19 @@ export const chapterApi = {
   },
   createChapter: async (payload: {
     projectId: number;
-    chapterNo: number;
     title: string;
-    summary: string;
+    summary?: string;
+    chapterNo?: number;
   }): Promise<{ message: string; data: ChapterResponse }> => {
-    return apiClient.post<{ message: string; data: ChapterResponse }>('/api/Chapter', payload);
+    const body: Record<string, unknown> = {
+      projectId: payload.projectId,
+      title: payload.title,
+      summary: payload.summary || '',
+    };
+    if (payload.chapterNo !== undefined) {
+      body.chapterNo = payload.chapterNo;
+    }
+    return apiClient.post<{ message: string; data: ChapterResponse }>('/api/Chapter', body);
   },
   updateChapter: async (id: string | number, payload: {
     title?: string;
