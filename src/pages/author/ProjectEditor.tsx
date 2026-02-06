@@ -70,6 +70,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
+import { chapterApi, ChapterResponse } from '@/lib/api';
 import {
   DndContext,
   closestCenter,
@@ -265,10 +266,12 @@ function SortableChapterItem({
   chapter: Chapter;
   isSelected: boolean;
   onSelect: () => void;
-  onEdit: () => void;
+  onEdit: (chapter: Chapter) => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(chapter.title);
   const {
     attributes,
     listeners,
@@ -282,6 +285,19 @@ function SortableChapterItem({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setEditTitle(chapter.title);
+  };
+
+  const handleSaveTitle = () => {
+    if (editTitle.trim()) {
+      onEdit({ ...chapter, title: editTitle });
+    }
+    setIsEditing(false);
   };
 
   return (
@@ -309,11 +325,33 @@ function SortableChapterItem({
 
       <FileText className="w-4 h-4 shrink-0" />
       <div className="flex-1 min-w-0">
-        <span className="truncate text-sm block">{chapter.title}</span>
-        {chapter.versions.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            {chapter.versions.length} version{chapter.versions.length > 1 ? 's' : ''}
-          </span>
+        {isEditing ? (
+          <Input
+            autoFocus
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onBlur={handleSaveTitle}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSaveTitle();
+              if (e.key === 'Escape') setIsEditing(false);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="h-6 text-sm p-1"
+          />
+        ) : (
+          <>
+            <span 
+              onDoubleClick={handleDoubleClick}
+              className="truncate text-sm block cursor-text hover:underline"
+            >
+              {chapter.title}
+            </span>
+            {chapter.versions.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {chapter.versions.length} version{chapter.versions.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </>
         )}
       </div>
       
@@ -365,7 +403,12 @@ export default function ProjectEditor() {
   const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
   const [showVersionsPanel, setShowVersionsPanel] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState('');
+  const [newChapterSummary, setNewChapterSummary] = useState('');
   const [newVersionName, setNewVersionName] = useState('');
+  const [chaptersLoading, setChaptersLoading] = useState(false);
+  const [chaptersError, setChaptersError] = useState<string | null>(null);
+  const [creatingChapter, setCreatingChapter] = useState(false);
+  const [updatingChapter, setUpdatingChapter] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState('chat');
   const [aiMode, setAiMode] = useState('standard');
@@ -420,6 +463,35 @@ export default function ProjectEditor() {
     }
   }, [selectedVersion, editor]);
 
+  // Fetch chapters from API when projectId changes
+  useEffect(() => {
+    if (projectId) {
+      const loadChapters = async () => {
+        setChaptersLoading(true);
+        setChaptersError(null);
+        try {
+          const res = await chapterApi.getChaptersByProject(projectId);
+          if (res.data && Array.isArray(res.data)) {
+            const apiChapters = res.data.map((ch: ChapterResponse) => ({
+              id: String(ch.chapterId || ch.id || ''),
+              title: ch.title || 'Untitled',
+              versions: [],
+              createdAt: ch.createdAt || new Date().toISOString().split('T')[0],
+              updatedAt: ch.updatedAt || 'Vừa xong',
+            }));
+            setChapters(apiChapters);
+          }
+        } catch (err) {
+          console.error('Error fetching chapters:', err);
+          setChaptersError(err instanceof Error ? err.message : 'Failed to load chapters');
+        } finally {
+          setChaptersLoading(false);
+        }
+      };
+      loadChapters();
+    }
+  }, [projectId]);
+
   // Calculate word count from editor
   const wordCount = editor?.storage.characterCount?.words?.() || 
     (editor?.getText().trim().split(/\s+/).filter(Boolean).length || 0);
@@ -461,20 +533,63 @@ export default function ProjectEditor() {
     setShowVersionsPanel(false);
   };
 
-  const handleCreateChapter = () => {
-    if (newChapterTitle.trim()) {
-      const newChapter: Chapter = {
-        id: Date.now().toString(),
-        title: newChapterTitle,
-        versions: [],
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: 'Vừa xong',
-      };
-      setChapters([...chapters, newChapter]);
-      setSelectedChapter(newChapter);
-      setShowVersionsPanel(true);
-      setNewChapterTitle('');
-      setShowNewChapterDialog(false);
+  const handleCreateChapter = async () => {
+    if (newChapterTitle.trim() && projectId) {
+      setCreatingChapter(true);
+      try {
+        // Auto-generate chapterNo based on current chapters count
+        const chapterNo = chapters.length + 1;
+        const payload = {
+          projectId: parseInt(projectId),
+          chapterNo: chapterNo,
+          title: newChapterTitle,
+          summary: newChapterSummary,
+        };
+        const res = await chapterApi.createChapter(payload);
+        if (res.data) {
+          const newChapter: Chapter = {
+            id: String(res.data.chapterId || res.data.id || ''),
+            title: res.data.title || newChapterTitle,
+            versions: [],
+            createdAt: res.data.createdAt || new Date().toISOString().split('T')[0],
+            updatedAt: res.data.updatedAt || 'Vừa xong',
+          };
+          setChapters([...chapters, newChapter]);
+          setSelectedChapter(newChapter);
+          setShowVersionsPanel(true);
+          setNewChapterTitle('');
+          setNewChapterSummary('');
+          setShowNewChapterDialog(false);
+        }
+      } catch (err) {
+        console.error('Error creating chapter:', err);
+        alert('Lỗi khi tạo chương: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      } finally {
+        setCreatingChapter(false);
+      }
+    }
+  };
+
+  const handleOpenEditChapter = async (chapter: Chapter) => {
+    if (!chapter.title.trim()) {
+      return;
+    }
+    setUpdatingChapter(true);
+    try {
+      const payload = { title: chapter.title };
+      const res = await chapterApi.updateChapter(chapter.id, payload);
+      if (res.data) {
+        setChapters(chapters.map(ch => 
+          ch.id === chapter.id 
+            ? { ...ch, title: res.data.title || chapter.title }
+            : ch
+        ));
+      }
+    } catch (err) {
+      console.error('Error updating chapter title:', err);
+      alert('Lỗi khi cập nhật tên chương: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setUpdatingChapter(false);
     }
   };
 
@@ -671,7 +786,7 @@ export default function ProjectEditor() {
                     chapter={chapter}
                     isSelected={selectedChapter?.id === chapter.id}
                     onSelect={() => handleSelectChapter(chapter)}
-                    onEdit={() => {/* Rename */}}
+                    onEdit={() => handleOpenEditChapter(chapter)}
                     onDuplicate={() => handleDuplicateChapter(chapter)}
                     onDelete={() => handleDeleteChapter(chapter.id)}
                   />
@@ -1156,29 +1271,39 @@ export default function ProjectEditor() {
           <DialogHeader>
             <DialogTitle>Tạo Chapter Mới</DialogTitle>
             <DialogDescription>
-              Nhập tên cho chapter mới
+              Nhập thông tin cho chapter mới
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="chapter-title">Tên chapter</Label>
-            <Input
-              id="chapter-title"
-              value={newChapterTitle}
-              onChange={(e) => setNewChapterTitle(e.target.value)}
-              placeholder="Ví dụ: Chapter 1"
-              className="mt-2"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateChapter();
-                }
-              }}
-            />
+          <div className="py-4 space-y-4">
+            <div>
+              <Label htmlFor="chapter-title">Tên chapter</Label>
+              <Input
+                id="chapter-title"
+                value={newChapterTitle}
+                onChange={(e) => setNewChapterTitle(e.target.value)}
+                placeholder="Ví dụ: Chapter 1"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="chapter-summary">Tóm tắt (tùy chọn)</Label>
+              <Textarea
+                id="chapter-summary"
+                value={newChapterSummary}
+                onChange={(e) => setNewChapterSummary(e.target.value)}
+                placeholder="Tóm tắt nội dung chapter..."
+                className="mt-2"
+                rows={3}
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewChapterDialog(false)}>
+            <Button variant="outline" onClick={() => setShowNewChapterDialog(false)} disabled={creatingChapter}>
               Hủy
             </Button>
-            <Button onClick={handleCreateChapter}>Tạo</Button>
+            <Button onClick={handleCreateChapter} disabled={creatingChapter || !newChapterTitle.trim()}>
+              {creatingChapter ? 'Đang tạo...' : 'Tạo'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
