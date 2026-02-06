@@ -132,6 +132,8 @@ interface ChapterVersion {
 interface Chapter {
   id: string;
   title: string;
+  chapterNo?: number;
+  summary?: string;
   versions: ChapterVersion[];
   createdAt: string;
   updatedAt: string;
@@ -149,6 +151,8 @@ const mockChapters: Chapter[] = [
   {
     id: '1',
     title: 'Chapter 1',
+    chapterNo: 1,
+    summary: '',
     versions: [
       {
         id: 'v1-1',
@@ -179,6 +183,8 @@ A knock echoed through the kitchen, sudden and unnatural. It was too early for t
   {
     id: '2',
     title: 'Chapter 2',
+    chapterNo: 2,
+    summary: '',
     versions: [
       {
         id: 'v2-1',
@@ -195,6 +201,8 @@ A knock echoed through the kitchen, sudden and unnatural. It was too early for t
   {
     id: '3',
     title: 'Copy of Chapter 1',
+    chapterNo: 3,
+    summary: '',
     versions: [],
     createdAt: '2024-12-17',
     updatedAt: '3 ngày trước',
@@ -202,6 +210,8 @@ A knock echoed through the kitchen, sudden and unnatural. It was too early for t
   {
     id: '4',
     title: 'Untitled',
+    chapterNo: 4,
+    summary: '',
     versions: [],
     createdAt: '2024-12-18',
     updatedAt: '4 ngày trước',
@@ -293,9 +303,17 @@ function SortableChapterItem({
     setEditTitle(chapter.title);
   };
 
+  const handleStartEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setEditTitle(chapter.title);
+  };
+
   const handleSaveTitle = () => {
     if (editTitle.trim()) {
-      onEdit({ ...chapter, title: editTitle });
+      onEdit({ ...chapter, title: editTitle.trim() });
+    } else {
+      setEditTitle(chapter.title); // Reset if empty
     }
     setIsEditing(false);
   };
@@ -366,7 +384,7 @@ function SortableChapterItem({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+          <DropdownMenuItem onClick={handleStartEdit}>
             <Edit className="mr-2 h-4 w-4" />
             Đổi tên
           </DropdownMenuItem>
@@ -392,7 +410,9 @@ export default function ProjectEditor() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   
-  const [projectTitle] = useState('My First Project');
+  const [projectTitle, setProjectTitle] = useState('My First Project');
+  const [isEditingProjectTitle, setIsEditingProjectTitle] = useState(false);
+  const [editProjectTitle, setEditProjectTitle] = useState('');
   const [chapters, setChapters] = useState<Chapter[]>(mockChapters);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<ChapterVersion | null>(null);
@@ -470,11 +490,14 @@ export default function ProjectEditor() {
         setChaptersLoading(true);
         setChaptersError(null);
         try {
-          const res = await chapterApi.getChaptersByProject(projectId);
+          // Convert projectId to number for API
+          const res = await chapterApi.getChaptersByProject(parseInt(projectId));
           if (res.data && Array.isArray(res.data)) {
             const apiChapters = res.data.map((ch: ChapterResponse) => ({
-              id: String(ch.chapterId || ch.id || ''),
+              id: String(ch.chapterId || ch.chapterID || ch.id || ''),
               title: ch.title || 'Untitled',
+              chapterNo: ch.chapterNo || ch.chapterNumber,
+              summary: ch.summary || '',
               versions: [],
               createdAt: ch.createdAt || new Date().toISOString().split('T')[0],
               updatedAt: ch.updatedAt || 'Vừa xong',
@@ -537,19 +560,21 @@ export default function ProjectEditor() {
     if (newChapterTitle.trim() && projectId) {
       setCreatingChapter(true);
       try {
-        // Auto-generate chapterNo based on current chapters count
+        // FE tự tính chapterNo tăng dần dựa trên số lượng chapters hiện tại
         const chapterNo = chapters.length + 1;
         const payload = {
           projectId: parseInt(projectId),
+          title: newChapterTitle.trim(),
+          summary: '', // Empty string as requested
           chapterNo: chapterNo,
-          title: newChapterTitle,
-          summary: newChapterSummary,
         };
         const res = await chapterApi.createChapter(payload);
         if (res.data) {
           const newChapter: Chapter = {
-            id: String(res.data.chapterId || res.data.id || ''),
+            id: String(res.data.chapterId || res.data.chapterID || res.data.id || ''),
             title: res.data.title || newChapterTitle,
+            chapterNo: res.data.chapterNo || res.data.chapterNumber || chapterNo,
+            summary: res.data.summary || '',
             versions: [],
             createdAt: res.data.createdAt || new Date().toISOString().split('T')[0],
             updatedAt: res.data.updatedAt || 'Vừa xong',
@@ -574,18 +599,46 @@ export default function ProjectEditor() {
     if (!chapter.title.trim()) {
       return;
     }
+    
+    // Optimistic update - update UI immediately
+    const previousChapters = [...chapters];
+    setChapters(chapters.map(ch => 
+      ch.id === chapter.id ? chapter : ch
+    ));
+    
     setUpdatingChapter(true);
     try {
-      const payload = { title: chapter.title };
-      const res = await chapterApi.updateChapter(chapter.id, payload);
+      // Gửi đầy đủ các field theo yêu cầu API
+      const payload = { 
+        title: chapter.title.trim(),
+        summary: chapter.summary ?? '',
+        chapterNo: chapter.chapterNo ?? 1,
+      };
+      
+      console.log('Update chapter payload:', payload);
+      console.log('Chapter ID:', chapter.id, '-> parseInt:', parseInt(chapter.id));
+      
+      // Convert chapter.id to number for API
+      const res = await chapterApi.updateChapter(parseInt(chapter.id), payload);
+      
+      console.log('Update response:', res);
+      
       if (res.data) {
-        setChapters(chapters.map(ch => 
+        // Update with server response
+        setChapters(prevChapters => prevChapters.map(ch => 
           ch.id === chapter.id 
-            ? { ...ch, title: res.data.title || chapter.title }
+            ? { 
+                ...ch, 
+                title: res.data.title || chapter.title,
+                summary: res.data.summary ?? chapter.summary,
+                chapterNo: res.data.chapterNo ?? res.data.chapterNumber ?? chapter.chapterNo,
+              }
             : ch
         ));
       }
     } catch (err) {
+      // Rollback on error
+      setChapters(previousChapters);
       console.error('Error updating chapter title:', err);
       alert('Lỗi khi cập nhật tên chương: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
@@ -710,6 +763,7 @@ export default function ProjectEditor() {
       ...chapter,
       id: Date.now().toString(),
       title: `Copy of ${chapter.title}`,
+      chapterNo: (chapter.chapterNo || 0) + 1,
       versions: chapter.versions.map(v => ({
         ...v,
         id: `v-${Date.now()}-${Math.random()}`,
@@ -718,6 +772,26 @@ export default function ProjectEditor() {
       updatedAt: 'Vừa xong',
     };
     setChapters([...chapters, newChapter]);
+  };
+
+  // Handlers for project title editing
+  const handleEditProjectTitle = () => {
+    setEditProjectTitle(projectTitle);
+    setIsEditingProjectTitle(true);
+  };
+
+  const handleSaveProjectTitle = () => {
+    if (editProjectTitle.trim()) {
+      setProjectTitle(editProjectTitle.trim());
+      // TODO: Call API to update project title
+      // await projectApi.updateProject(projectId, { title: editProjectTitle.trim() });
+    }
+    setIsEditingProjectTitle(false);
+  };
+
+  const handleCancelEditProjectTitle = () => {
+    setIsEditingProjectTitle(false);
+    setEditProjectTitle('');
   };
 
   return (
@@ -739,7 +813,27 @@ export default function ProjectEditor() {
             >
               <ChevronLeft className="w-5 h-5" />
             </Button>
-            <h1 className="font-serif font-semibold text-lg truncate">{projectTitle}</h1>
+            {isEditingProjectTitle ? (
+              <Input
+                autoFocus
+                value={editProjectTitle}
+                onChange={(e) => setEditProjectTitle(e.target.value)}
+                onBlur={handleSaveProjectTitle}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveProjectTitle();
+                  if (e.key === 'Escape') handleCancelEditProjectTitle();
+                }}
+                className="h-8 font-serif font-semibold text-lg flex-1"
+              />
+            ) : (
+              <h1 
+                className="font-serif font-semibold text-lg truncate flex-1 cursor-pointer hover:bg-primary/5 px-2 py-1 rounded"
+                onClick={handleEditProjectTitle}
+                title="Click để đổi tên"
+              >
+                {projectTitle}
+              </h1>
+            )}
             <Button 
               variant="ghost" 
               size="icon"
@@ -786,7 +880,7 @@ export default function ProjectEditor() {
                     chapter={chapter}
                     isSelected={selectedChapter?.id === chapter.id}
                     onSelect={() => handleSelectChapter(chapter)}
-                    onEdit={() => handleOpenEditChapter(chapter)}
+                    onEdit={(updatedChapter) => handleOpenEditChapter(updatedChapter)}
                     onDuplicate={() => handleDuplicateChapter(chapter)}
                     onDelete={() => handleDeleteChapter(chapter.id)}
                   />
