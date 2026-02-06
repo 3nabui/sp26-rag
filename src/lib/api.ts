@@ -47,6 +47,40 @@ export interface AdminUserListResponse {
   };
 }
 
+// Project DTO returned by Project APIs
+export interface ProjectResponse {
+  projectId?: string | number;
+  id?: string | number;
+  title: string;
+  description?: string | null;
+  summary?: string | null;
+  wordCount?: number;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+  coverImage?: string | null;
+  coverImageUrl?: string | null;
+  status?: string;
+  authorId?: number;
+  authorName?: string;
+  totalChapters?: number;
+  totalChatSessions?: number;
+  genres?: any[];
+}
+
+// Chapter DTO
+export interface ChapterResponse {
+  chapterId?: string | number;
+  id?: string | number;
+  projectId?: string | number;
+  title: string;
+  content?: string | null;
+  chapterNumber?: number;
+  wordCount?: number;
+  status?: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
 // API Client class
 class ApiClient {
   private baseURL: string;
@@ -228,5 +262,80 @@ export const adminApi = {
     const endpoint = qs ? `/api/Admin/users?${qs}` : '/api/Admin/users';
 
     return apiClient.get<AdminUserListResponse>(endpoint);
+  },
+};
+
+// Project API functions
+export const projectApi = {
+  getMyProjects: async (): Promise<{ message: string; data: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    wordCount?: number;
+    updatedAt?: string;
+    createdAt?: string;
+    coverImage?: string | null;
+  }> }> => {
+    return apiClient.get('/api/Project/my-projects');
+  },
+  getProjectDetail: async (id: string | number): Promise<{ message: string; data: ProjectResponse }> => {
+    return apiClient.get(`/api/Project/${id}`);
+  },
+  createProject: async (payload: {
+    title: string;
+    summary?: string;
+    coverImageUrl?: string;
+  }): Promise<{ message: string; data: ProjectResponse }> => {
+    const body: Record<string, any> = { title: payload.title };
+    if (payload.summary !== undefined && payload.summary !== '') {
+      body.summary = payload.summary;
+    }
+    if (payload.coverImageUrl !== undefined) {
+      body.coverImageUrl = payload.coverImageUrl;
+    }
+    return apiClient.post<{ message: string; data: ProjectResponse }>('/api/Project', body);
+  },
+  updateProject: async (id: string, payload: {
+    title?: string;
+    summary?: string;
+    coverImageUrl?: string | null;
+    status?: string;
+  }): Promise<{ message: string; data: ProjectResponse }> => {
+    const body: Record<string, any> = {};
+    if (payload.title !== undefined) {
+      body.title = payload.title;
+    }
+    if (payload.summary !== undefined) {
+      body.summary = payload.summary;
+    }
+    if (payload.coverImageUrl !== undefined) {
+      body.coverImageUrl = payload.coverImageUrl;
+    }
+    if (payload.status !== undefined) {
+      body.status = payload.status;
+    }
+    return apiClient.put<{ message: string; data: ProjectResponse }>(`/api/Project/${id}`, body);
+  },
+};
+
+// Chapter API functions
+export const chapterApi = {
+  getChaptersByProject: async (projectId: string | number): Promise<{ message: string; data: ChapterResponse[] }> => {
+    return apiClient.get(`/api/Chapter/project/${projectId}`);
+  },
+  createChapter: async (payload: {
+    projectId: number;
+    chapterNo: number;
+    title: string;
+    summary: string;
+  }): Promise<{ message: string; data: ChapterResponse }> => {
+    return apiClient.post<{ message: string; data: ChapterResponse }>('/api/Chapter', payload);
+  },
+  updateChapter: async (id: string | number, payload: {
+    title?: string;
+    summary?: string;
+    chapterNo?: number;
+  }): Promise<{ message: string; data: ChapterResponse }> => {
+    return apiClient.put<{ message: string; data: ChapterResponse }>(`/api/Chapter/${id}`, payload);
   },
 };

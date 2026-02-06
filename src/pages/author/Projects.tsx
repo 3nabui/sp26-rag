@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
@@ -35,8 +35,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
+import { projectApi, ProjectResponse } from '@/lib/api';
 
-// Mock project data
 interface Project {
   id: string;
   title: string;
@@ -46,33 +46,6 @@ interface Project {
   createdAt: string;
   coverImage?: string;
 }
-
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    title: 'Bóng Tối Dưới Ánh Trăng',
-    description: 'Một câu chuyện trinh thám ly kỳ',
-    wordCount: 85000,
-    updatedAt: 'Vừa xong',
-    createdAt: '2024-12-15',
-  },
-  {
-    id: '2',
-    title: 'Những Ngày Mưa Phương Nam',
-    description: 'Tiểu thuyết tình cảm',
-    wordCount: 62000,
-    updatedAt: '2 ngày trước',
-    createdAt: '2024-12-20',
-  },
-  {
-    id: '3',
-    title: 'Hành Trình Vô Tận',
-    description: 'Phiêu lưu hành động',
-    wordCount: 120000,
-    updatedAt: '1 tuần trước',
-    createdAt: '2024-12-25',
-  },
-];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -156,7 +129,6 @@ function ProjectCard({
           {/* Stats */}
           <div className="mt-auto text-sm text-muted-foreground">
             <p>{project.wordCount.toLocaleString()} từ</p>
-            <p className="text-xs">{project.updatedAt}</p>
           </div>
         </CardContent>
       </Card>
@@ -189,30 +161,86 @@ function CreateProjectCard({ onClick }: { onClick: () => void }) {
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({ title: '', description: '' });
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editDetail, setEditDetail] = useState<ProjectResponse | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', description: '' });
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   const filteredProjects = projects.filter(project =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCreateProject = () => {
-    if (newProject.title.trim()) {
-      const project: Project = {
-        id: Date.now().toString(),
+  const reload = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await projectApi.getMyProjects();
+      const items = (res.data || []).map((p: ProjectResponse & { UpdatedAt?: string }) => {
+        // Backend returns projectId or id, handle both
+        const id = String(p.projectId || p.id || '');
+        const updatedAt = p.UpdatedAt || p.updatedAt || '';
+        return {
+          id: id,
+          title: p.title || 'Untitled',
+          description: p.summary || p.description || '',
+          wordCount: p.wordCount || 0,
+          updatedAt: updatedAt,
+          createdAt: p.createdAt || '',
+          coverImage: p.coverImage || undefined,
+        };
+      });
+      // Sort by createdAt descending (newest first)
+      items.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+      setProjects(items);
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : 'Lỗi khi tải project';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) reload();
+    return () => { mounted = false; };
+  }, []);
+
+  const handleCreateProject = async () => {
+    if (!newProject.title.trim()) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const payload = {
         title: newProject.title,
-        description: newProject.description,
-        wordCount: 0,
-        updatedAt: 'Vừa xong',
-        createdAt: new Date().toISOString().split('T')[0],
+        summary: newProject.description || '',
       };
-      setProjects([project, ...projects]);
+      await projectApi.createProject(payload);
+      // Reload projects from server to avoid duplicates
+      await reload();
       setNewProject({ title: '', description: '' });
       setIsCreateDialogOpen(false);
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : 'Lỗi khi tạo project';
+      setCreateError(message);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -239,6 +267,61 @@ export default function ProjectsPage() {
   const handleOpenProject = (projectId: string) => {
     // Navigate to project editor
     navigate(`/author/project/${projectId}`);
+  };
+
+  const handleOpenEdit = async (project: Project) => {
+    setEditingProject(project);
+    setEditForm({ title: project.title, description: project.description || '' });
+    setUpdateError(null);
+    try {
+      // Fetch full project detail
+      const res = await projectApi.getProjectDetail(project.id);
+      setEditDetail(res.data);
+    } catch (err) {
+      console.error('Error fetching project detail:', err);
+      // If getProjectDetail fails, use local data as fallback
+      setEditDetail({
+        id: project.id,
+        title: project.title,
+        summary: project.description,
+        status: 'draft',
+      } as ProjectResponse);
+      setUpdateError('');
+    }
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateProject = async () => {
+    if (!editingProject || !editDetail) return;
+    setUpdating(true);
+    setUpdateError(null);
+    try {
+      // Send complete payload with all fields
+      const payload: { title: string; summary: string; status: string; coverImageUrl?: string } = {
+        title: editForm.title || editDetail.title,
+        summary: editForm.description || editDetail.summary || '',
+        status: (editDetail.status || 'Draft').charAt(0).toUpperCase() + (editDetail.status || 'Draft').slice(1).toLowerCase(),
+      };
+      
+      // Only add coverImageUrl if it has a value
+      if (editDetail.coverImageUrl) {
+        payload.coverImageUrl = editDetail.coverImageUrl;
+      }
+      
+      console.log('Updating project with payload:', payload);
+      await projectApi.updateProject(editingProject.id, payload);
+      // Reload projects from server to get latest data
+      await reload();
+      setIsEditDialogOpen(false);
+      setEditingProject(null);
+      setEditDetail(null);
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : 'Lỗi khi cập nhật project';
+      console.error('Update error:', message);
+      setUpdateError(message);
+    } finally {
+      setUpdating(false);
+    }
   };
 
   return (
@@ -294,11 +377,16 @@ export default function ProjectsPage() {
                     />
                   </div>
                 </div>
+                {createError && (
+                  <div className="text-destructive text-sm px-6">{createError}</div>
+                )}
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={creating}>
                     Hủy
                   </Button>
-                  <Button onClick={handleCreateProject}>Tạo Project</Button>
+                  <Button onClick={handleCreateProject} disabled={creating}>
+                    {creating ? 'Đang tạo...' : 'Tạo Project'}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -333,8 +421,9 @@ export default function ProjectsPage() {
                       id="file-upload"
                       type="file"
                       className="hidden"
+                      title="Upload file"
                       accept=".docx,.pdf,.txt"
-                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUploadFile(e.target.files?.[0] || null)}
                     />
                   </div>
                 </div>
@@ -344,6 +433,48 @@ export default function ProjectsPage() {
                   </Button>
                   <Button onClick={handleUploadProject} disabled={!uploadFile}>
                     Import
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="font-serif">Chỉnh sửa Project</DialogTitle>
+                  <DialogDescription>
+                    Cập nhật thông tin tác phẩm
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-title">Tên tác phẩm</Label>
+                    <Input
+                      id="edit-title"
+                      placeholder="Nhập tên tác phẩm..."
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-description">Mô tả (tùy chọn)</Label>
+                    <Textarea
+                      id="edit-description"
+                      placeholder="Mô tả ngắn về tác phẩm..."
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    />
+                  </div>
+                </div>
+                {updateError && (
+                  <div className="text-destructive text-sm px-6">{updateError}</div>
+                )}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setEditingProject(null); }} disabled={updating}>
+                    Hủy
+                  </Button>
+                  <Button onClick={handleUpdateProject} disabled={updating}>
+                    {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -387,41 +518,58 @@ export default function ProjectsPage() {
           </div>
         </motion.div>
 
-        {/* Projects Grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto px-4"
-        >
-          {/* Create Project Card */}
-          <CreateProjectCard onClick={() => setIsCreateDialogOpen(true)} />
+        {/* Projects Grid / Loading / Error */}
+        {loading ? (
+          <div className="text-center py-12">Đang tải dự án...</div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={reload}>Thử lại</Button>
+          </div>
+        ) : (
+          <>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto px-4"
+            >
+              {/* Create Project Card */}
+              <CreateProjectCard onClick={() => setIsCreateDialogOpen(true)} />
 
-          {/* Project Cards */}
-          <AnimatePresence>
-            {filteredProjects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onOpen={() => handleOpenProject(project.id)}
-                onEdit={() => {/* TODO: Edit dialog */}}
-                onDelete={() => handleDeleteProject(project.id)}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.div>
+              {/* Project Cards */}
+              <AnimatePresence>
+                {filteredProjects.map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    onOpen={() => handleOpenProject(project.id)}
+                    onEdit={() => handleOpenEdit(project)}
+                    onDelete={() => handleDeleteProject(project.id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.div>
 
-        {/* Empty State */}
-        {filteredProjects.length === 0 && searchQuery && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
-          >
-            <p className="text-muted-foreground">
-              Không tìm thấy project nào với từ khóa "{searchQuery}"
-            </p>
-          </motion.div>
+            {/* Empty State */}
+            {filteredProjects.length === 0 && searchQuery && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-12"
+              >
+                <p className="text-muted-foreground">
+                  Không tìm thấy project nào với từ khóa "{searchQuery}"
+                </p>
+              </motion.div>
+            )}
+
+            {filteredProjects.length === 0 && !searchQuery && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
+                <p className="text-muted-foreground">Chưa có project nào — hãy tạo project mới.</p>
+              </motion.div>
+            )}
+          </>
         )}
       </div>
     </DefaultLayout>
