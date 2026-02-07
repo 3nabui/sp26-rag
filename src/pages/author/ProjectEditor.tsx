@@ -72,7 +72,7 @@ import {
 import { cn, formatDateTime } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { chapterApi, projectApi, ChapterResponse } from '@/lib/api';
+import { chapterApi, projectApi, ChapterResponse, characterApi, CharacterResponse, worldSettingApi, WorldSettingResponse } from '@/lib/api';
 import { createChapterVersion, deleteChapterVersion, getChapterVersions, updateChapterVersion } from '@/services/chapterVersionService';
 import {
   DndContext,
@@ -105,6 +105,8 @@ interface Character {
   appearance: string;
   personality: string;
   backstory: string;
+  goals?: string;
+  metadataJson?: string;
 }
 
 interface WorldSetting {
@@ -443,14 +445,16 @@ export default function ProjectEditor() {
   const [showCharactersPanel, setShowCharactersPanel] = useState(false);
   const [showWorldbuildingPanel, setShowWorldbuildingPanel] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState<string[]>(['1', '3']); // Fantasy, Romance
-  const [characters, setCharacters] = useState<Character[]>(mockCharacters);
-  const [worldSettings, setWorldSettings] = useState<WorldSetting[]>(mockWorldSettings);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [charactersLoading, setCharactersLoading] = useState(false);
+  const [worldSettings, setWorldSettings] = useState<WorldSetting[]>([]);
+  const [worldSettingsLoading, setWorldSettingsLoading] = useState(false);
   const [showNewCharacterDialog, setShowNewCharacterDialog] = useState(false);
   const [showNewWorldSettingDialog, setShowNewWorldSettingDialog] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [editingWorldSetting, setEditingWorldSetting] = useState<WorldSetting | null>(null);
   const [newCharacter, setNewCharacter] = useState<Omit<Character, 'id'>>({
-    name: '', role: '', appearance: '', personality: '', backstory: ''
+    name: '', role: '', appearance: '', personality: '', backstory: '', goals: '', metadataJson: ''
   });
   const [newWorldSetting, setNewWorldSetting] = useState<Omit<WorldSetting, 'id'>>({
     settingName: '', category: 'other', description: '', rules: ''
@@ -532,6 +536,65 @@ export default function ProjectEditor() {
         }
       };
       loadChapters();
+    }
+  }, [projectId]);
+
+  // Fetch characters from API when projectId changes
+  useEffect(() => {
+    if (projectId) {
+      const loadCharacters = async () => {
+        setCharactersLoading(true);
+        try {
+          const res = await characterApi.getCharactersByProject(parseInt(projectId));
+          if (res.data && Array.isArray(res.data)) {
+            const apiCharacters: Character[] = res.data.map((char: CharacterResponse) => ({
+              id: String(char.characterId),
+              name: char.name || '',
+              role: char.role || '',
+              appearance: char.appearance || '',
+              personality: char.personality || '',
+              backstory: char.backstory || '',
+              goals: char.goals || '',
+              metadataJson: char.metadataJson || '',
+            }));
+            setCharacters(apiCharacters);
+          }
+        } catch (err) {
+          console.error('Error fetching characters:', err);
+          toast.error('Không thể tải danh sách nhân vật');
+        } finally {
+          setCharactersLoading(false);
+        }
+      };
+      loadCharacters();
+    }
+  }, [projectId]);
+
+  // Fetch world settings from API when projectId changes
+  useEffect(() => {
+    if (projectId) {
+      const loadWorldSettings = async () => {
+        setWorldSettingsLoading(true);
+        try {
+          const res = await worldSettingApi.getWorldSettingsByProject(parseInt(projectId));
+          if (res.data && Array.isArray(res.data)) {
+            const apiWorldSettings: WorldSetting[] = res.data.map((setting: WorldSettingResponse) => ({
+              id: String(setting.settingId),
+              settingName: setting.settingName || '',
+              category: (setting.category as WorldSetting['category']) || 'other',
+              description: setting.description || '',
+              rules: setting.rules || '',
+            }));
+            setWorldSettings(apiWorldSettings);
+          }
+        } catch (err) {
+          console.error('Error fetching world settings:', err);
+          toast.error('Không thể tải danh sách world settings');
+        } finally {
+          setWorldSettingsLoading(false);
+        }
+      };
+      loadWorldSettings();
     }
   }, [projectId]);
 
@@ -1067,7 +1130,10 @@ export default function ProjectEditor() {
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-3 h-10 px-3 hover:bg-primary/10"
-                    onClick={() => setShowCharactersPanel(true)}
+                    onClick={() => {
+                      setShowWorldbuildingPanel(false);
+                      setShowCharactersPanel(!showCharactersPanel);
+                    }}
                   >
                     <Users className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm">{t('storyBible.characters')}</span>
@@ -1080,7 +1146,10 @@ export default function ProjectEditor() {
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-3 h-10 px-3 hover:bg-primary/10"
-                    onClick={() => setShowWorldbuildingPanel(true)}
+                    onClick={() => {
+                      setShowCharactersPanel(false);
+                      setShowWorldbuildingPanel(!showWorldbuildingPanel);
+                    }}
                   >
                     <Globe className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm">{t('storyBible.worldbuilding')}</span>
@@ -1633,7 +1702,7 @@ export default function ProjectEditor() {
               <Button 
                 className="w-full gap-2"
                 onClick={() => {
-                  setNewCharacter({ name: '', role: '', appearance: '', personality: '', backstory: '' });
+                  setNewCharacter({ name: '', role: '', appearance: '', personality: '', backstory: '', goals: '', metadataJson: '' });
                   setEditingCharacter(null);
                   setShowNewCharacterDialog(true);
                 }}
@@ -1645,7 +1714,11 @@ export default function ProjectEditor() {
 
             <ScrollArea className="flex-1">
               <div className="p-4 pt-0 space-y-3">
-                {characters.length === 0 ? (
+                {charactersLoading ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p className="text-sm">Đang tải...</p>
+                  </div>
+                ) : characters.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
                     <p className="text-sm">Chưa có character nào</p>
@@ -1670,9 +1743,18 @@ export default function ProjectEditor() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            setCharacters(characters.filter(c => c.id !== char.id));
+                            if (confirm('Bạn có chắc muốn xóa nhân vật này?')) {
+                              try {
+                                await characterApi.deleteCharacter(char.id);
+                                setCharacters(characters.filter(c => c.id !== char.id));
+                                toast.success('Đã xóa nhân vật thành công');
+                              } catch (err) {
+                                console.error('Error deleting character:', err);
+                                toast.error(err instanceof Error ? err.message : 'Không thể xóa nhân vật');
+                              }
+                            }
                           }}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1726,7 +1808,11 @@ export default function ProjectEditor() {
 
             <ScrollArea className="flex-1">
               <div className="p-4 pt-0 space-y-3">
-                {worldSettings.length === 0 ? (
+                {worldSettingsLoading ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p className="text-sm">Đang tải...</p>
+                  </div>
+                ) : worldSettings.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Globe className="w-12 h-12 mx-auto mb-3 opacity-40" />
                     <p className="text-sm">Chưa có world setting nào</p>
@@ -1751,9 +1837,18 @@ export default function ProjectEditor() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            setWorldSettings(worldSettings.filter(s => s.id !== setting.id));
+                            if (confirm('Bạn có chắc muốn xóa world setting này?')) {
+                              try {
+                                await worldSettingApi.deleteWorldSetting(setting.id);
+                                setWorldSettings(worldSettings.filter(s => s.id !== setting.id));
+                                toast.success('Đã xóa world setting thành công');
+                              } catch (err) {
+                                console.error('Error deleting world setting:', err);
+                                toast.error(err instanceof Error ? err.message : 'Không thể xóa world setting');
+                              }
+                            }
                           }}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1780,53 +1875,63 @@ export default function ProjectEditor() {
               {editingCharacter ? 'Chỉnh sửa Character' : 'Thêm Character Mới'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto flex flex-col items-center">
+            <div className="w-full max-w-md">
               <Label>Tên</Label>
               <Input
                 value={newCharacter.name}
                 onChange={(e) => setNewCharacter({ ...newCharacter, name: e.target.value })}
                 placeholder="Tên nhân vật"
-                className="mt-1"
+                className="mt-1 w-full"
               />
             </div>
-            <div>
+            <div className="w-full max-w-md">
               <Label>Vai trò</Label>
               <Input
                 value={newCharacter.role}
                 onChange={(e) => setNewCharacter({ ...newCharacter, role: e.target.value })}
                 placeholder="Protagonist, Antagonist, Supporting..."
-                className="mt-1"
+                className="mt-1 w-full"
               />
             </div>
-            <div>
+            <div className="w-full max-w-md">
               <Label>Ngoại hình</Label>
               <Textarea
                 value={newCharacter.appearance}
                 onChange={(e) => setNewCharacter({ ...newCharacter, appearance: e.target.value })}
                 placeholder="Mô tả ngoại hình của nhân vật..."
-                className="mt-1"
-                rows={2}
+                className="mt-1 w-full"
+                rows={1}
               />
             </div>
-            <div>
+            <div className="w-full max-w-md">
               <Label>Tính cách</Label>
               <Textarea
                 value={newCharacter.personality}
                 onChange={(e) => setNewCharacter({ ...newCharacter, personality: e.target.value })}
                 placeholder="Mô tả tính cách của nhân vật..."
-                className="mt-1"
-                rows={2}
+                className="mt-1 w-full"
+                rows={1}
               />
             </div>
-            <div>
+            <div className="w-full max-w-md">
               <Label>Backstory</Label>
               <Textarea
                 value={newCharacter.backstory}
                 onChange={(e) => setNewCharacter({ ...newCharacter, backstory: e.target.value })}
                 placeholder="Câu chuyện quá khứ của nhân vật..."
-                className="mt-1"
-                rows={3}
+                className="mt-1 w-full"
+                rows={2}
+              />
+            </div>
+            <div className="w-full max-w-md">
+              <Label>Mục tiêu</Label>
+              <Textarea
+                value={newCharacter.goals || ''}
+                onChange={(e) => setNewCharacter({ ...newCharacter, goals: e.target.value })}
+                placeholder="Mục tiêu của nhân vật..."
+                className="mt-1 w-full"
+                rows={1}
               />
             </div>
           </div>
@@ -1834,16 +1939,71 @@ export default function ProjectEditor() {
             <Button variant="outline" onClick={() => setShowNewCharacterDialog(false)}>
               Hủy
             </Button>
-            <Button onClick={() => {
-              if (newCharacter.name.trim()) {
+            <Button onClick={async () => {
+              if (!newCharacter.name.trim()) {
+                toast.error('Vui lòng nhập tên nhân vật');
+                return;
+              }
+              if (!projectId) {
+                toast.error('Không tìm thấy project ID');
+                return;
+              }
+
+              try {
                 if (editingCharacter) {
+                  // Update character
+                  const res = await characterApi.updateCharacter(editingCharacter.id, {
+                    name: newCharacter.name,
+                    role: newCharacter.role || undefined,
+                    appearance: newCharacter.appearance || undefined,
+                    personality: newCharacter.personality || undefined,
+                    backstory: newCharacter.backstory || undefined,
+                    goals: newCharacter.goals || undefined,
+                    metadataJson: newCharacter.metadataJson || undefined,
+                  });
+                  const updatedChar: Character = {
+                    id: String(res.data.characterId),
+                    name: res.data.name,
+                    role: res.data.role || '',
+                    appearance: res.data.appearance || '',
+                    personality: res.data.personality || '',
+                    backstory: res.data.backstory || '',
+                    goals: res.data.goals || '',
+                    metadataJson: res.data.metadataJson || '',
+                  };
                   setCharacters(characters.map(c => 
-                    c.id === editingCharacter.id ? { ...newCharacter, id: editingCharacter.id } : c
+                    c.id === editingCharacter.id ? updatedChar : c
                   ));
+                  toast.success('Đã cập nhật nhân vật thành công');
                 } else {
-                  setCharacters([...characters, { ...newCharacter, id: Date.now().toString() }]);
+                  // Create character
+                  const res = await characterApi.createCharacter({
+                    projectId: parseInt(projectId),
+                    name: newCharacter.name,
+                    role: newCharacter.role || undefined,
+                    appearance: newCharacter.appearance || undefined,
+                    personality: newCharacter.personality || undefined,
+                    backstory: newCharacter.backstory || undefined,
+                    goals: newCharacter.goals || undefined,
+                    metadataJson: newCharacter.metadataJson || undefined,
+                  });
+                  const newChar: Character = {
+                    id: String(res.data.characterId),
+                    name: res.data.name,
+                    role: res.data.role || '',
+                    appearance: res.data.appearance || '',
+                    personality: res.data.personality || '',
+                    backstory: res.data.backstory || '',
+                    goals: res.data.goals || '',
+                    metadataJson: res.data.metadataJson || '',
+                  };
+                  setCharacters([...characters, newChar]);
+                  toast.success('Đã thêm nhân vật thành công');
                 }
                 setShowNewCharacterDialog(false);
+              } catch (err) {
+                console.error('Error saving character:', err);
+                toast.error(err instanceof Error ? err.message : 'Không thể lưu nhân vật');
               }
             }}>
               {editingCharacter ? 'Lưu' : 'Thêm'}
@@ -1861,17 +2021,17 @@ export default function ProjectEditor() {
               {editingWorldSetting ? 'Chỉnh sửa World Setting' : 'Thêm World Setting Mới'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto flex flex-col items-center">
+            <div className="w-full max-w-md">
               <Label>Tên</Label>
               <Input
                 value={newWorldSetting.settingName}
                 onChange={(e) => setNewWorldSetting({ ...newWorldSetting, settingName: e.target.value })}
                 placeholder="Ví dụ: The Fjordlands, Magic System..."
-                className="mt-1"
+                className="mt-1 w-full"
               />
             </div>
-            <div>
+            <div className="w-full max-w-md">
               <Label>Category</Label>
               <Select
                 value={newWorldSetting.category}
@@ -1879,7 +2039,7 @@ export default function ProjectEditor() {
                   setNewWorldSetting({ ...newWorldSetting, category: value })
                 }
               >
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1892,24 +2052,24 @@ export default function ProjectEditor() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="w-full max-w-md">
               <Label>Mô tả</Label>
               <Textarea
                 value={newWorldSetting.description}
                 onChange={(e) => setNewWorldSetting({ ...newWorldSetting, description: e.target.value })}
                 placeholder="Mô tả chi tiết về setting này..."
-                className="mt-1"
-                rows={3}
+                className="mt-1 w-full"
+                rows={2}
               />
             </div>
-            <div>
+            <div className="w-full max-w-md">
               <Label>Quy tắc / Rules</Label>
               <Textarea
                 value={newWorldSetting.rules}
                 onChange={(e) => setNewWorldSetting({ ...newWorldSetting, rules: e.target.value })}
                 placeholder="Các quy tắc đặc biệt áp dụng cho setting này..."
-                className="mt-1"
-                rows={3}
+                className="mt-1 w-full"
+                rows={2}
               />
             </div>
           </div>
@@ -1917,16 +2077,59 @@ export default function ProjectEditor() {
             <Button variant="outline" onClick={() => setShowNewWorldSettingDialog(false)}>
               Hủy
             </Button>
-            <Button onClick={() => {
-              if (newWorldSetting.settingName.trim()) {
+            <Button onClick={async () => {
+              if (!newWorldSetting.settingName.trim()) {
+                toast.error('Vui lòng nhập tên world setting');
+                return;
+              }
+              if (!projectId) {
+                toast.error('Không tìm thấy project ID');
+                return;
+              }
+
+              try {
                 if (editingWorldSetting) {
+                  // Update world setting
+                  const res = await worldSettingApi.updateWorldSetting(editingWorldSetting.id, {
+                    settingName: newWorldSetting.settingName,
+                    category: newWorldSetting.category || undefined,
+                    description: newWorldSetting.description || undefined,
+                    rules: newWorldSetting.rules || undefined,
+                  });
+                  const updatedSetting: WorldSetting = {
+                    id: String(res.data.settingId),
+                    settingName: res.data.settingName || '',
+                    category: (res.data.category as WorldSetting['category']) || 'other',
+                    description: res.data.description || '',
+                    rules: res.data.rules || '',
+                  };
                   setWorldSettings(worldSettings.map(s => 
-                    s.id === editingWorldSetting.id ? { ...newWorldSetting, id: editingWorldSetting.id } : s
+                    s.id === editingWorldSetting.id ? updatedSetting : s
                   ));
+                  toast.success('Đã cập nhật world setting thành công');
                 } else {
-                  setWorldSettings([...worldSettings, { ...newWorldSetting, id: Date.now().toString() }]);
+                  // Create world setting
+                  const res = await worldSettingApi.createWorldSetting({
+                    projectId: parseInt(projectId),
+                    settingName: newWorldSetting.settingName,
+                    category: newWorldSetting.category || undefined,
+                    description: newWorldSetting.description || undefined,
+                    rules: newWorldSetting.rules || undefined,
+                  });
+                  const newSetting: WorldSetting = {
+                    id: String(res.data.settingId),
+                    settingName: res.data.settingName || '',
+                    category: (res.data.category as WorldSetting['category']) || 'other',
+                    description: res.data.description || '',
+                    rules: res.data.rules || '',
+                  };
+                  setWorldSettings([...worldSettings, newSetting]);
+                  toast.success('Đã thêm world setting thành công');
                 }
                 setShowNewWorldSettingDialog(false);
+              } catch (err) {
+                console.error('Error saving world setting:', err);
+                toast.error(err instanceof Error ? err.message : 'Không thể lưu world setting');
               }
             }}>
               {editingWorldSetting ? 'Lưu' : 'Thêm'}
