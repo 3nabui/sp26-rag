@@ -1,7 +1,6 @@
-import { Bell, Search, Settings, ChevronDown, LogOut, User, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { Bell, Settings, ChevronDown, LogOut, User, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -140,17 +139,6 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
         {/* Title & Breadcrumb */}
         <div>
           <h2 className="text-xl font-serif font-semibold text-foreground">{title}</h2>
-        </div>
-
-        {/* Search */}
-        <div className="flex-1 max-w-md mx-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search manuscripts, analysis..." 
-              className="pl-10 bg-secondary/50 border-transparent focus:bg-input focus:border-border"
-            />
-          </div>
         </div>
 
         {/* Actions */}
