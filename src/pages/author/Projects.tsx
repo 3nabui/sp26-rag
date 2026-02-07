@@ -26,6 +26,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -35,13 +45,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { projectApi, ProjectResponse } from '@/lib/api';
+import { deleteProject } from '@/services/projectService';
 
 interface Project {
   id: string;
   title: string;
   description?: string;
-  wordCount: number;
   updatedAt: string;
   createdAt: string;
   coverImage?: string;
@@ -121,15 +132,10 @@ function ProjectCard({
 
           {/* Description */}
           {project.description && (
-            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+            <p className="text-sm text-muted-foreground mt-auto line-clamp-2">
               {project.description}
             </p>
           )}
-
-          {/* Stats */}
-          <div className="mt-auto text-sm text-muted-foreground">
-            <p>{project.wordCount.toLocaleString()} từ</p>
-          </div>
         </CardContent>
       </Card>
     </motion.div>
@@ -177,6 +183,9 @@ export default function ProjectsPage() {
   const [editForm, setEditForm] = useState({ title: '', description: '' });
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filteredProjects = projects.filter(project =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -195,7 +204,6 @@ export default function ProjectsPage() {
           id: id,
           title: p.title || 'Untitled',
           description: p.summary || p.description || '',
-          wordCount: p.wordCount || 0,
           updatedAt: updatedAt,
           createdAt: p.createdAt || '',
           coverImage: p.coverImage || undefined,
@@ -250,7 +258,6 @@ export default function ProjectsPage() {
         id: Date.now().toString(),
         title: uploadFile.name.replace(/\.[^/.]+$/, ''),
         description: 'Imported project',
-        wordCount: Math.floor(Math.random() * 50000) + 10000,
         updatedAt: 'Vừa xong',
         createdAt: new Date().toISOString().split('T')[0],
       };
@@ -260,8 +267,26 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleDeleteProject = (projectId: string) => {
-    setProjects(projects.filter(p => p.id !== projectId));
+  const handleDeleteProject = (project: Project) => {
+    setProjectToDelete(project);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete) return;
+    setDeleting(true);
+    try {
+      await deleteProject(projectToDelete.id);
+      toast.success('Đã xóa project thành công');
+      await reload();
+      setIsDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : 'Không thể xóa project';
+      toast.error(message);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleOpenProject = (projectId: string) => {
@@ -479,6 +504,32 @@ export default function ProjectsPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+              if (!open && !deleting) {
+                setIsDeleteDialogOpen(false);
+                setProjectToDelete(null);
+              }
+            }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xác nhận xóa project</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Bạn có chắc chắn muốn xóa project &quot;{projectToDelete?.title}&quot;? Hành động này không thể hoàn tác.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Hủy</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deleting}
+                  >
+                    {deleting ? 'Đang xóa...' : 'Xóa'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           {/* Center - Title */}
@@ -545,7 +596,7 @@ export default function ProjectsPage() {
                     project={project}
                     onOpen={() => handleOpenProject(project.id)}
                     onEdit={() => handleOpenEdit(project)}
-                    onDelete={() => handleDeleteProject(project.id)}
+                    onDelete={() => handleDeleteProject(project)}
                   />
                 ))}
               </AnimatePresence>

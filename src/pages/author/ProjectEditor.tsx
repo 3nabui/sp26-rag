@@ -30,6 +30,7 @@ import {
   GitBranch,
   Clock,
   Check,
+  Save,
   Drama,
   Users,
   Globe
@@ -68,9 +69,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
-import { chapterApi, ChapterResponse } from '@/lib/api';
+import { toast } from 'sonner';
+import { chapterApi, projectApi, ChapterResponse } from '@/lib/api';
+import { createChapterVersion, deleteChapterVersion, getChapterVersions, updateChapterVersion } from '@/services/chapterVersionService';
 import {
   DndContext,
   closestCenter,
@@ -410,7 +413,7 @@ export default function ProjectEditor() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   
-  const [projectTitle, setProjectTitle] = useState('My First Project');
+  const [projectTitle, setProjectTitle] = useState('');
   const [isEditingProjectTitle, setIsEditingProjectTitle] = useState(false);
   const [editProjectTitle, setEditProjectTitle] = useState('');
   const [chapters, setChapters] = useState<Chapter[]>(mockChapters);
@@ -424,10 +427,11 @@ export default function ProjectEditor() {
   const [showVersionsPanel, setShowVersionsPanel] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [newChapterSummary, setNewChapterSummary] = useState('');
-  const [newVersionName, setNewVersionName] = useState('');
   const [chaptersLoading, setChaptersLoading] = useState(false);
   const [chaptersError, setChaptersError] = useState<string | null>(null);
   const [creatingChapter, setCreatingChapter] = useState(false);
+  const [creatingVersion, setCreatingVersion] = useState(false);
+  const [savingVersion, setSavingVersion] = useState(false);
   const [updatingChapter, setUpdatingChapter] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState('chat');
@@ -482,6 +486,22 @@ export default function ProjectEditor() {
       editor.commands.setContent(selectedVersion.content);
     }
   }, [selectedVersion, editor]);
+
+  // Fetch project detail to get title
+  useEffect(() => {
+    if (projectId) {
+      const loadProject = async () => {
+        try {
+          const res = await projectApi.getProjectDetail(projectId);
+          setProjectTitle(res.data?.title || 'Chưa có tên');
+        } catch (err) {
+          console.error('Error fetching project:', err);
+          setProjectTitle('Chưa có tên');
+        }
+      };
+      loadProject();
+    }
+  }, [projectId]);
 
   // Fetch chapters from API when projectId changes
   useEffect(() => {
@@ -540,11 +560,102 @@ export default function ProjectEditor() {
     }
   };
 
-  // Handle chapter selection - show versions panel
-  const handleSelectChapter = (chapter: Chapter) => {
+  // Handle chapter selection - show versions panel, fetch versions from API
+  const handleSelectChapter = async (chapter: Chapter) => {
     setSelectedChapter(chapter);
     setShowVersionsPanel(true);
     setSelectedVersion(null);
+
+    // Fetch versions from API
+    const chapterId = Number(chapter.id);
+    if (!isNaN(chapterId)) {
+      try {
+        const res = await getChapterVersions(chapterId);
+        // API trả về versionId (số); dùng versionId cho DELETE /api/ChapterVersion/{id}
+        const versions: ChapterVersion[] = (res.data || []).map((v, idx) => {
+          const rawContent = v.rawContent ?? '';
+          const versionId = v.versionId ?? v.chapterVersionId;
+          return {
+            id: String(versionId ?? `v-${chapterId}-${idx}`),
+            name: `Version ${v.versionNumber ?? idx + 1}`,
+            content: rawContent,
+            wordCount: (v as { wordCount?: number }).wordCount ?? rawContent.trim().split(/\s+/).filter(Boolean).length,
+            createdAt: v.uploadDate ?? v.createdAt ?? new Date().toLocaleString('vi-VN'),
+            isActive: v.isActive ?? idx === 0,
+          };
+        });
+
+        setChapters((prev) =>
+          prev.map((ch) =>
+            ch.id === chapter.id ? { ...ch, versions } : ch
+          )
+        );
+        setSelectedChapter((prev) =>
+          prev?.id === chapter.id ? { ...chapter, versions } : prev
+        );
+      } catch (err: unknown) {
+        console.error('Error fetching chapter versions:', err);
+        const msg = err instanceof Error ? err.message : '';
+        if (msg.includes('403')) {
+          toast.error('Bạn không có quyền truy cập. Vui lòng đăng nhập lại hoặc kiểm tra quyền tài khoản.');
+        } else {
+          toast.error(msg || 'Không thể tải danh sách version.');
+        }
+      }
+    }
+  };
+
+  const handleSaveVersion = async () => {
+    if (!selectedVersion || !editor) return;
+    const rawContent = editor.getHTML();
+    setSavingVersion(true);
+    try {
+      await updateChapterVersion(selectedVersion.id, rawContent);
+      const updatedContent = rawContent;
+      setChapters((prev) =>
+        prev.map((ch) =>
+          ch.id === selectedChapter?.id
+            ? {
+                ...ch,
+                versions: ch.versions.map((v) =>
+                  v.id === selectedVersion.id
+                    ? {
+                        ...v,
+                        content: updatedContent,
+                        wordCount: editor.getText().trim().split(/\s+/).filter(Boolean).length,
+                      }
+                    : v
+                ),
+              }
+            : ch
+        )
+      );
+      if (selectedChapter) {
+        setSelectedChapter({
+          ...selectedChapter,
+          versions: selectedChapter.versions.map((v) =>
+            v.id === selectedVersion.id
+              ? {
+                  ...v,
+                  content: updatedContent,
+                  wordCount: editor.getText().trim().split(/\s+/).filter(Boolean).length,
+                }
+              : v
+          ),
+        });
+      }
+      setSelectedVersion({
+        ...selectedVersion,
+        content: updatedContent,
+        wordCount: editor.getText().trim().split(/\s+/).filter(Boolean).length,
+      });
+      toast.success('Đã lưu version');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Không thể lưu version';
+      toast.error(message);
+    } finally {
+      setSavingVersion(false);
+    }
   };
 
   // Handle version selection - open editor directly
@@ -646,14 +757,31 @@ export default function ProjectEditor() {
     }
   };
 
-  const handleCreateVersion = () => {
-    if (selectedChapter && newVersionName.trim()) {
+  const handleCreateVersion = async () => {
+    if (!selectedChapter) return;
+    const chapterId = Number(selectedChapter.id);
+    if (isNaN(chapterId)) {
+      toast.error('Chapter ID không hợp lệ');
+      return;
+    }
+
+    // rawContent = nội dung truyện, mặc định "Text here" khi tạo version mới
+    const rawContent = 'Text here';
+    const versionNumber = selectedChapter.versions.length + 1;
+    const versionName = `Version ${versionNumber}`;
+
+    setCreatingVersion(true);
+    try {
+      const res = await createChapterVersion({ chapterId, rawContent });
+      const data = res.data;
+
+      const versionId = data?.versionId ?? data?.chapterVersionId;
       const newVersion: ChapterVersion = {
-        id: `v-${Date.now()}`,
-        name: newVersionName,
-        content: '',
+        id: String(versionId ?? `v-${Date.now()}`),
+        name: versionName,
+        content: rawContent,
         wordCount: 0,
-        createdAt: new Date().toLocaleString('vi-VN'),
+        createdAt: data?.createdAt ?? new Date().toLocaleString('vi-VN'),
         isActive: selectedChapter.versions.length === 0,
       };
 
@@ -668,17 +796,19 @@ export default function ProjectEditor() {
         return ch;
       }));
 
-      // Update selected chapter
       setSelectedChapter({
         ...selectedChapter,
         versions: [...selectedChapter.versions, newVersion],
       });
 
-      setNewVersionName('');
       setShowNewVersionDialog(false);
-      
-      // Automatically select the new version
+      toast.success('Đã tạo version mới thành công');
       handleSelectVersion(newVersion);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Không thể tạo version mới';
+      toast.error(message);
+    } finally {
+      setCreatingVersion(false);
     }
   };
 
@@ -703,25 +833,32 @@ export default function ProjectEditor() {
     });
   };
 
-  const handleDeleteVersion = (versionId: string) => {
+  const handleDeleteVersion = async (versionId: string) => {
     if (!selectedChapter) return;
 
-    const updatedVersions = selectedChapter.versions.filter(v => v.id !== versionId);
+    try {
+      await deleteChapterVersion(versionId);
+      const updatedVersions = selectedChapter.versions.filter(v => v.id !== versionId);
 
-    setChapters(chapters.map(ch => {
-      if (ch.id === selectedChapter.id) {
-        return { ...ch, versions: updatedVersions };
+      setChapters(chapters.map(ch => {
+        if (ch.id === selectedChapter.id) {
+          return { ...ch, versions: updatedVersions };
+        }
+        return ch;
+      }));
+
+      setSelectedChapter({
+        ...selectedChapter,
+        versions: updatedVersions,
+      });
+
+      if (selectedVersion?.id === versionId) {
+        setSelectedVersion(null);
       }
-      return ch;
-    }));
-
-    setSelectedChapter({
-      ...selectedChapter,
-      versions: updatedVersions,
-    });
-
-    if (selectedVersion?.id === versionId) {
-      setSelectedVersion(null);
+      toast.success('Đã xóa version');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Không thể xóa version';
+      toast.error(message);
     }
   };
 
@@ -831,7 +968,7 @@ export default function ProjectEditor() {
                 onClick={handleEditProjectTitle}
                 title="Click để đổi tên"
               >
-                {projectTitle}
+                {projectTitle || 'Đang tải...'}
               </h1>
             )}
             <Button 
@@ -1049,7 +1186,7 @@ export default function ProjectEditor() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {version.createdAt}
+                          {formatDateTime(version.createdAt)}
                         </span>
                         <span>{version.wordCount} từ</span>
                       </div>
@@ -1206,6 +1343,17 @@ export default function ProjectEditor() {
                 onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
               >
                 H3
+              </Button>
+              <div className="flex-1" />
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 gap-1.5 px-3"
+                onClick={handleSaveVersion}
+                disabled={savingVersion}
+              >
+                <Save className="w-4 h-4" />
+                {savingVersion ? 'Đang lưu...' : 'Lưu'}
               </Button>
             </div>
 
@@ -1408,29 +1556,16 @@ export default function ProjectEditor() {
           <DialogHeader>
             <DialogTitle>Tạo Version Mới</DialogTitle>
             <DialogDescription>
-              Tạo một version mới cho chapter "{selectedChapter?.title}"
+              Tạo version mới cho chapter &quot;{selectedChapter?.title}&quot;. Version sẽ có tên mặc định (Version 1, Version 2, ...).
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="version-name">Tên version</Label>
-            <Input
-              id="version-name"
-              value={newVersionName}
-              onChange={(e) => setNewVersionName(e.target.value)}
-              placeholder="Ví dụ: Draft 1, Version 2, Final..."
-              className="mt-2"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateVersion();
-                }
-              }}
-            />
-          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewVersionDialog(false)}>
+            <Button variant="outline" onClick={() => setShowNewVersionDialog(false)} disabled={creatingVersion}>
               Hủy
             </Button>
-            <Button onClick={handleCreateVersion}>Tạo Version</Button>
+            <Button onClick={handleCreateVersion} disabled={creatingVersion}>
+              {creatingVersion ? 'Đang tạo...' : 'Tạo Version'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
