@@ -357,3 +357,172 @@ export const chapterApi = {
     return apiClient.put<{ message: string; data: ChapterResponse }>(`/api/Chapter/${id}`, payload);
   },
 };
+
+// Character DTO
+export interface CharacterRelationshipDto {
+  relId: number;
+  relatedCharacterId: number;
+  relatedCharacterName: string;
+  relationType?: string | null;
+  description?: string | null;
+}
+
+export interface CharacterResponse {
+  characterId: number;
+  projectId: number;
+  projectTitle: string;
+  name: string;
+  role?: string | null;
+  appearance?: string | null;
+  personality?: string | null;
+  backstory?: string | null;
+  goals?: string | null;
+  metadataJson?: string | null;
+  createdAt: string;
+  relationships: CharacterRelationshipDto[];
+}
+
+// Character API functions
+export const characterApi = {
+  getCharacterById: async (id: string | number): Promise<{ message: string; data: CharacterResponse }> => {
+    return apiClient.get<{ message: string; data: CharacterResponse }>(`/api/Character/${id}`);
+  },
+
+  getCharactersByProject: async (projectId: string | number): Promise<{ 
+    message: string; 
+    data: CharacterResponse[]; 
+    count?: number;
+  }> => {
+    return apiClient.get<{ message: string; data: CharacterResponse[]; count?: number }>(
+      `/api/Character/project/${projectId}`
+    );
+  },
+
+  createCharacter: async (payload: {
+    projectId: number;
+    name: string;
+    role?: string;
+    appearance?: string;
+    personality?: string;
+    backstory?: string;
+    goals?: string;
+    metadataJson?: string;
+  }): Promise<{ message: string; data: CharacterResponse }> => {
+    const body: Record<string, unknown> = {
+      projectId: payload.projectId,
+      name: payload.name,
+    };
+    if (payload.role !== undefined) body.role = payload.role;
+    if (payload.appearance !== undefined) body.appearance = payload.appearance;
+    if (payload.personality !== undefined) body.personality = payload.personality;
+    if (payload.backstory !== undefined) body.backstory = payload.backstory;
+    if (payload.goals !== undefined) body.goals = payload.goals;
+    if (payload.metadataJson !== undefined) body.metadataJson = payload.metadataJson;
+    
+    return apiClient.post<{ message: string; data: CharacterResponse }>('/api/Character', body);
+  },
+
+  updateCharacter: async (id: string | number, payload: {
+    name?: string;
+    role?: string;
+    appearance?: string;
+    personality?: string;
+    backstory?: string;
+    goals?: string;
+    metadataJson?: string;
+  }): Promise<{ message: string; data: CharacterResponse }> => {
+    const body: Record<string, unknown> = {};
+    if (payload.name !== undefined) body.name = payload.name;
+    if (payload.role !== undefined) body.role = payload.role;
+    if (payload.appearance !== undefined) body.appearance = payload.appearance;
+    if (payload.personality !== undefined) body.personality = payload.personality;
+    if (payload.backstory !== undefined) body.backstory = payload.backstory;
+    if (payload.goals !== undefined) body.goals = payload.goals;
+    if (payload.metadataJson !== undefined) body.metadataJson = payload.metadataJson;
+    
+    return apiClient.put<{ message: string; data: CharacterResponse }>(`/api/Character/${id}`, body);
+  },
+
+  deleteCharacter: async (id: string | number): Promise<{ message: string }> => {
+    return apiClient.delete<{ message: string }>(`/api/Character/${id}`);
+  },
+};
+
+// WorldSetting DTO
+export interface WorldSettingResponse {
+  settingId: number;
+  projectId: number;
+  projectTitle: string;
+  settingName?: string | null;
+  category?: string | null;
+  description?: string | null;
+  rules?: string | null;
+  updatedAt: string;
+}
+
+// WorldSetting API functions
+export const worldSettingApi = {
+  getWorldSettingById: async (id: string | number): Promise<{ message: string; data: WorldSettingResponse }> => {
+    return apiClient.get<{ message: string; data: WorldSettingResponse }>(`/api/WorldSetting/${id}`);
+  },
+
+  getWorldSettingsByProject: async (projectId: string | number): Promise<{ 
+    message: string; 
+    data: WorldSettingResponse[]; 
+    count?: number;
+  }> => {
+    return apiClient.get<{ message: string; data: WorldSettingResponse[]; count?: number }>(
+      `/api/WorldSetting/project/${projectId}`
+    );
+  },
+
+  getWorldSettingsByCategory: async (
+    projectId: string | number, 
+    category: string
+  ): Promise<{ 
+    message: string; 
+    data: WorldSettingResponse[]; 
+    count?: number;
+  }> => {
+    return apiClient.get<{ message: string; data: WorldSettingResponse[]; count?: number }>(
+      `/api/WorldSetting/project/${projectId}/category/${category}`
+    );
+  },
+
+  createWorldSetting: async (payload: {
+    projectId: number;
+    settingName?: string;
+    category?: string;
+    description?: string;
+    rules?: string;
+  }): Promise<{ message: string; data: WorldSettingResponse }> => {
+    const body: Record<string, unknown> = {
+      projectId: payload.projectId,
+    };
+    if (payload.settingName !== undefined) body.settingName = payload.settingName;
+    if (payload.category !== undefined) body.category = payload.category;
+    if (payload.description !== undefined) body.description = payload.description;
+    if (payload.rules !== undefined) body.rules = payload.rules;
+    
+    return apiClient.post<{ message: string; data: WorldSettingResponse }>('/api/WorldSetting', body);
+  },
+
+  updateWorldSetting: async (id: string | number, payload: {
+    settingName?: string;
+    category?: string;
+    description?: string;
+    rules?: string;
+  }): Promise<{ message: string; data: WorldSettingResponse }> => {
+    const body: Record<string, unknown> = {};
+    if (payload.settingName !== undefined) body.settingName = payload.settingName;
+    if (payload.category !== undefined) body.category = payload.category;
+    if (payload.description !== undefined) body.description = payload.description;
+    if (payload.rules !== undefined) body.rules = payload.rules;
+    
+    return apiClient.put<{ message: string; data: WorldSettingResponse }>(`/api/WorldSetting/${id}`, body);
+  },
+
+  deleteWorldSetting: async (id: string | number): Promise<{ message: string }> => {
+    return apiClient.delete<{ message: string }>(`/api/WorldSetting/${id}`);
+  },
+};
