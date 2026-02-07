@@ -1,11 +1,15 @@
 import { apiClient } from '@/lib/api';
 
 export interface ChapterVersionResponse {
+  versionId?: number;
   chapterVersionId?: number;
   chapterId?: number;
+  versionNumber?: number;
   /** Nội dung truyện (story content) */
   rawContent?: string;
+  uploadDate?: string;
   createdAt?: string;
+  isActive?: boolean;
   [key: string]: unknown;
 }
 
@@ -42,4 +46,20 @@ export const createChapterVersion = async (
       rawContent: payload.rawContent,
     }
   );
+};
+
+export const updateChapterVersion = async (
+  id: string | number,
+  rawContent: string
+): Promise<{ message: string; data: ChapterVersionResponse }> => {
+  return apiClient.put<{ message: string; data: ChapterVersionResponse }>(
+    `/api/ChapterVersion/${id}`,
+    { rawContent }
+  );
+};
+
+export const deleteChapterVersion = async (
+  id: string | number
+): Promise<{ message: string }> => {
+  return apiClient.delete<{ message: string }>(`/api/ChapterVersion/${id}`);
 };
