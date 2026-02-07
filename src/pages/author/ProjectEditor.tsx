@@ -70,7 +70,9 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { chapterApi, ChapterResponse } from '@/lib/api';
+import { createChapterVersion } from '@/services/chapterVersionService';
 import {
   DndContext,
   closestCenter,
@@ -428,6 +430,7 @@ export default function ProjectEditor() {
   const [chaptersLoading, setChaptersLoading] = useState(false);
   const [chaptersError, setChaptersError] = useState<string | null>(null);
   const [creatingChapter, setCreatingChapter] = useState(false);
+  const [creatingVersion, setCreatingVersion] = useState(false);
   const [updatingChapter, setUpdatingChapter] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState('chat');
@@ -646,14 +649,27 @@ export default function ProjectEditor() {
     }
   };
 
-  const handleCreateVersion = () => {
-    if (selectedChapter && newVersionName.trim()) {
+  const handleCreateVersion = async () => {
+    if (!selectedChapter) return;
+    const chapterId = Number(selectedChapter.id);
+    if (isNaN(chapterId)) {
+      toast.error('Chapter ID không hợp lệ');
+      return;
+    }
+
+    const rawContent = editor?.getText() || selectedVersion?.content || '';
+
+    setCreatingVersion(true);
+    try {
+      const res = await createChapterVersion({ chapterId, rawContent });
+      const data = res.data;
+
       const newVersion: ChapterVersion = {
-        id: `v-${Date.now()}`,
-        name: newVersionName,
-        content: '',
-        wordCount: 0,
-        createdAt: new Date().toLocaleString('vi-VN'),
+        id: String(data?.chapterVersionId ?? `v-${Date.now()}`),
+        name: newVersionName.trim() || `Version ${selectedChapter.versions.length + 1}`,
+        content: data?.rawContent ?? rawContent,
+        wordCount: (data?.rawContent ?? rawContent).trim().split(/\s+/).filter(Boolean).length,
+        createdAt: data?.createdAt ?? new Date().toLocaleString('vi-VN'),
         isActive: selectedChapter.versions.length === 0,
       };
 
@@ -668,7 +684,6 @@ export default function ProjectEditor() {
         return ch;
       }));
 
-      // Update selected chapter
       setSelectedChapter({
         ...selectedChapter,
         versions: [...selectedChapter.versions, newVersion],
@@ -676,9 +691,13 @@ export default function ProjectEditor() {
 
       setNewVersionName('');
       setShowNewVersionDialog(false);
-      
-      // Automatically select the new version
+      toast.success('Đã tạo version mới thành công');
       handleSelectVersion(newVersion);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Không thể tạo version mới';
+      toast.error(message);
+    } finally {
+      setCreatingVersion(false);
     }
   };
 
@@ -1427,10 +1446,12 @@ export default function ProjectEditor() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewVersionDialog(false)}>
+            <Button variant="outline" onClick={() => setShowNewVersionDialog(false)} disabled={creatingVersion}>
               Hủy
             </Button>
-            <Button onClick={handleCreateVersion}>Tạo Version</Button>
+            <Button onClick={handleCreateVersion} disabled={creatingVersion}>
+              {creatingVersion ? 'Đang tạo...' : 'Tạo Version'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
