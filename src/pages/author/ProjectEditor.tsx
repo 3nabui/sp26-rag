@@ -418,7 +418,7 @@ export default function ProjectEditor() {
   const [projectTitle, setProjectTitle] = useState('');
   const [isEditingProjectTitle, setIsEditingProjectTitle] = useState(false);
   const [editProjectTitle, setEditProjectTitle] = useState('');
-  const [chapters, setChapters] = useState<Chapter[]>(mockChapters);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<ChapterVersion | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(mockChatHistory);
@@ -1065,28 +1065,42 @@ export default function ProjectEditor() {
         {/* Chapters List with Drag and Drop */}
         <ScrollArea className="flex-1">
           <div className="p-2">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={chapters.map(c => c.id)}
-                strategy={verticalListSortingStrategy}
+            {chaptersLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <p className="text-muted-foreground">Đang tải...</p>
+              </div>
+            ) : chaptersError ? (
+              <div className="flex items-center justify-center py-8">
+                <p className="text-destructive text-sm">{chaptersError}</p>
+              </div>
+            ) : chapters.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <p className="text-muted-foreground text-sm">Chưa có chương nào</p>
+              </div>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                {chapters.map((chapter) => (
-                  <SortableChapterItem
-                    key={chapter.id}
-                    chapter={chapter}
-                    isSelected={selectedChapter?.id === chapter.id}
-                    onSelect={() => handleSelectChapter(chapter)}
-                    onEdit={(updatedChapter) => handleOpenEditChapter(updatedChapter)}
-                    onDuplicate={() => handleDuplicateChapter(chapter)}
-                    onDelete={() => handleDeleteChapter(chapter.id)}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+                <SortableContext
+                  items={chapters.map(c => c.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {chapters.map((chapter) => (
+                    <SortableChapterItem
+                      key={chapter.id}
+                      chapter={chapter}
+                      isSelected={selectedChapter?.id === chapter.id}
+                      onSelect={() => handleSelectChapter(chapter)}
+                      onEdit={(updatedChapter) => handleOpenEditChapter(updatedChapter)}
+                      onDuplicate={() => handleDuplicateChapter(chapter)}
+                      onDelete={() => handleDeleteChapter(chapter.id)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
           </div>
         </ScrollArea>
 
