@@ -53,7 +53,6 @@ interface Project {
   id: string;
   title: string;
   description?: string;
-  wordCount: number;
   updatedAt: string;
   createdAt: string;
   coverImage?: string;
@@ -133,15 +132,10 @@ function ProjectCard({
 
           {/* Description */}
           {project.description && (
-            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+            <p className="text-sm text-muted-foreground mt-auto line-clamp-2">
               {project.description}
             </p>
           )}
-
-          {/* Stats */}
-          <div className="mt-auto text-sm text-muted-foreground">
-            <p>{project.wordCount.toLocaleString()} từ</p>
-          </div>
         </CardContent>
       </Card>
     </motion.div>
@@ -210,7 +204,6 @@ export default function ProjectsPage() {
           id: id,
           title: p.title || 'Untitled',
           description: p.summary || p.description || '',
-          wordCount: p.wordCount || 0,
           updatedAt: updatedAt,
           createdAt: p.createdAt || '',
           coverImage: p.coverImage || undefined,
@@ -265,7 +258,6 @@ export default function ProjectsPage() {
         id: Date.now().toString(),
         title: uploadFile.name.replace(/\.[^/.]+$/, ''),
         description: 'Imported project',
-        wordCount: Math.floor(Math.random() * 50000) + 10000,
         updatedAt: 'Vừa xong',
         createdAt: new Date().toISOString().split('T')[0],
       };

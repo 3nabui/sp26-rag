@@ -1556,7 +1556,7 @@ export default function ProjectEditor() {
           <DialogHeader>
             <DialogTitle>Tạo Version Mới</DialogTitle>
             <DialogDescription>
-              Tạo version mới cho chapter &quot;{selectedChapter?.title}&quot;. Version sẽ có tên mặc định (Version 1, Version 2, ...) và nội dung mặc định &quot;Text here&quot;.
+              Tạo version mới cho chapter &quot;{selectedChapter?.title}&quot;. Version sẽ có tên mặc định (Version 1, Version 2, ...).
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
