@@ -3,6 +3,7 @@ import { apiClient } from '@/lib/api';
 export interface ChapterVersionResponse {
   chapterVersionId?: number;
   chapterId?: number;
+  /** Nội dung truyện (story content) */
   rawContent?: string;
   createdAt?: string;
   [key: string]: unknown;
@@ -10,14 +11,27 @@ export interface ChapterVersionResponse {
 
 export interface CreateChapterVersionPayload {
   chapterId: number;
+  /** Nội dung truyện. Mặc định "Text here" khi tạo version mới */
   rawContent: string;
 }
 
+export interface GetChapterVersionsResponse {
+  message: string;
+  data: ChapterVersionResponse[];
+}
+
 /**
- * Tạo version mới cho chapter
- * POST /api/ChapterVersion
- * Mỗi chapter có nhiều chapter version
+ * Lấy danh sách versions của chapter
+ * GET /api/ChapterVersion/chapter/{chapterId}
  */
+export const getChapterVersions = async (
+  chapterId: string | number
+): Promise<GetChapterVersionsResponse> => {
+  return apiClient.get<GetChapterVersionsResponse>(
+    `/api/ChapterVersion/chapter/${chapterId}`
+  );
+};
+
 export const createChapterVersion = async (
   payload: CreateChapterVersionPayload
 ): Promise<{ message: string; data: ChapterVersionResponse }> => {
