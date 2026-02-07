@@ -71,8 +71,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { chapterApi, ChapterResponse } from '@/lib/api';
-import { createChapterVersion } from '@/services/chapterVersionService';
+import { chapterApi, projectApi, ChapterResponse } from '@/lib/api';
+import { createChapterVersion, getChapterVersions } from '@/services/chapterVersionService';
 import {
   DndContext,
   closestCenter,
@@ -412,7 +412,7 @@ export default function ProjectEditor() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   
-  const [projectTitle, setProjectTitle] = useState('My First Project');
+  const [projectTitle, setProjectTitle] = useState('');
   const [isEditingProjectTitle, setIsEditingProjectTitle] = useState(false);
   const [editProjectTitle, setEditProjectTitle] = useState('');
   const [chapters, setChapters] = useState<Chapter[]>(mockChapters);
@@ -426,7 +426,6 @@ export default function ProjectEditor() {
   const [showVersionsPanel, setShowVersionsPanel] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [newChapterSummary, setNewChapterSummary] = useState('');
-  const [newVersionName, setNewVersionName] = useState('');
   const [chaptersLoading, setChaptersLoading] = useState(false);
   const [chaptersError, setChaptersError] = useState<string | null>(null);
   const [creatingChapter, setCreatingChapter] = useState(false);
@@ -486,6 +485,22 @@ export default function ProjectEditor() {
     }
   }, [selectedVersion, editor]);
 
+  // Fetch project detail to get title
+  useEffect(() => {
+    if (projectId) {
+      const loadProject = async () => {
+        try {
+          const res = await projectApi.getProjectDetail(projectId);
+          setProjectTitle(res.data?.title || 'Chưa có tên');
+        } catch (err) {
+          console.error('Error fetching project:', err);
+          setProjectTitle('Chưa có tên');
+        }
+      };
+      loadProject();
+    }
+  }, [projectId]);
+
   // Fetch chapters from API when projectId changes
   useEffect(() => {
     if (projectId) {
@@ -543,11 +558,48 @@ export default function ProjectEditor() {
     }
   };
 
-  // Handle chapter selection - show versions panel
-  const handleSelectChapter = (chapter: Chapter) => {
+  // Handle chapter selection - show versions panel, fetch versions from API
+  const handleSelectChapter = async (chapter: Chapter) => {
     setSelectedChapter(chapter);
     setShowVersionsPanel(true);
     setSelectedVersion(null);
+
+    // Fetch versions from API
+    const chapterId = Number(chapter.id);
+    if (!isNaN(chapterId)) {
+      try {
+        const res = await getChapterVersions(chapterId);
+        // rawContent = nội dung truyện; name mặc định Version 1, Version 2, ...
+        const versions: ChapterVersion[] = (res.data || []).map((v, idx) => {
+          const rawContent = v.rawContent ?? '';
+          return {
+            id: String(v.chapterVersionId ?? `v-${chapterId}-${idx}`),
+            name: `Version ${idx + 1}`,
+            content: rawContent,
+            wordCount: rawContent.trim().split(/\s+/).filter(Boolean).length,
+            createdAt: v.createdAt ?? new Date().toLocaleString('vi-VN'),
+            isActive: idx === 0,
+          };
+        });
+
+        setChapters((prev) =>
+          prev.map((ch) =>
+            ch.id === chapter.id ? { ...ch, versions } : ch
+          )
+        );
+        setSelectedChapter((prev) =>
+          prev?.id === chapter.id ? { ...chapter, versions } : prev
+        );
+      } catch (err: unknown) {
+        console.error('Error fetching chapter versions:', err);
+        const msg = err instanceof Error ? err.message : '';
+        if (msg.includes('403')) {
+          toast.error('Bạn không có quyền truy cập. Vui lòng đăng nhập lại hoặc kiểm tra quyền tài khoản.');
+        } else {
+          toast.error(msg || 'Không thể tải danh sách version.');
+        }
+      }
+    }
   };
 
   // Handle version selection - open editor directly
@@ -657,7 +709,10 @@ export default function ProjectEditor() {
       return;
     }
 
-    const rawContent = editor?.getText() || selectedVersion?.content || '';
+    // rawContent = nội dung truyện, mặc định "Text here" khi tạo version mới
+    const rawContent = 'Text here';
+    const versionNumber = selectedChapter.versions.length + 1;
+    const versionName = `Version ${versionNumber}`;
 
     setCreatingVersion(true);
     try {
@@ -666,9 +721,9 @@ export default function ProjectEditor() {
 
       const newVersion: ChapterVersion = {
         id: String(data?.chapterVersionId ?? `v-${Date.now()}`),
-        name: newVersionName.trim() || `Version ${selectedChapter.versions.length + 1}`,
-        content: data?.rawContent ?? rawContent,
-        wordCount: (data?.rawContent ?? rawContent).trim().split(/\s+/).filter(Boolean).length,
+        name: versionName,
+        content: rawContent,
+        wordCount: 0,
         createdAt: data?.createdAt ?? new Date().toLocaleString('vi-VN'),
         isActive: selectedChapter.versions.length === 0,
       };
@@ -689,7 +744,6 @@ export default function ProjectEditor() {
         versions: [...selectedChapter.versions, newVersion],
       });
 
-      setNewVersionName('');
       setShowNewVersionDialog(false);
       toast.success('Đã tạo version mới thành công');
       handleSelectVersion(newVersion);
@@ -850,7 +904,7 @@ export default function ProjectEditor() {
                 onClick={handleEditProjectTitle}
                 title="Click để đổi tên"
               >
-                {projectTitle}
+                {projectTitle || 'Đang tải...'}
               </h1>
             )}
             <Button 
@@ -1427,24 +1481,9 @@ export default function ProjectEditor() {
           <DialogHeader>
             <DialogTitle>Tạo Version Mới</DialogTitle>
             <DialogDescription>
-              Tạo một version mới cho chapter "{selectedChapter?.title}"
+              Tạo version mới cho chapter &quot;{selectedChapter?.title}&quot;. Version sẽ có tên mặc định (Version 1, Version 2, ...) và nội dung mặc định &quot;Text here&quot;.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="version-name">Tên version</Label>
-            <Input
-              id="version-name"
-              value={newVersionName}
-              onChange={(e) => setNewVersionName(e.target.value)}
-              placeholder="Ví dụ: Draft 1, Version 2, Final..."
-              className="mt-2"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateVersion();
-                }
-              }}
-            />
-          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewVersionDialog(false)} disabled={creatingVersion}>
               Hủy
