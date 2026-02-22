@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
+  Upload, 
   MoreHorizontal, 
   Search, 
   Settings, 
@@ -171,9 +172,11 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({ title: '', description: '' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editDetail, setEditDetail] = useState<ProjectResponse | null>(null);
@@ -246,6 +249,21 @@ export default function ProjectsPage() {
       setCreateError(message);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleUploadProject = () => {
+    if (uploadFile) {
+      const project: Project = {
+        id: Date.now().toString(),
+        title: uploadFile.name.replace(/\.[^/.]+$/, ''),
+        description: 'Imported project',
+        updatedAt: 'Vừa xong',
+        createdAt: new Date().toISOString().split('T')[0],
+      };
+      setProjects([project, ...projects]);
+      setUploadFile(null);
+      setIsUploadDialogOpen(false);
     }
   };
 
@@ -393,6 +411,53 @@ export default function ProjectsPage() {
                   </Button>
                   <Button onClick={handleCreateProject} disabled={creating}>
                     {creating ? 'Đang tạo...' : 'Tạo Project'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" className="gap-2 text-foreground hover:bg-white/50">
+                  <Upload className="w-4 h-4" />
+                  Import Novel
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="font-serif">Import Novel</DialogTitle>
+                  <DialogDescription>
+                    Tải lên file tác phẩm của bạn (.docx, .pdf, .txt)
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div 
+                    className="border-2 border-dashed border-primary/30 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                  >
+                    <Upload className="w-12 h-12 mx-auto text-primary/40 mb-4" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {uploadFile ? uploadFile.name : 'Kéo thả file hoặc click để chọn'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Hỗ trợ: .docx, .pdf, .txt
+                    </p>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      className="hidden"
+                      title="Upload file"
+                      accept=".docx,.pdf,.txt"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUploadFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
+                    Hủy
+                  </Button>
+                  <Button onClick={handleUploadProject} disabled={!uploadFile}>
+                    Import
                   </Button>
                 </DialogFooter>
               </DialogContent>
