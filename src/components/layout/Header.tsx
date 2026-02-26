@@ -244,15 +244,15 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>Tài khoản</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate(profilePath)}>
                 <User className="w-4 h-4 mr-2" />
-                Profile
+                Hồ sơ
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(settingsPath)}>
                 <Settings className="w-4 h-4 mr-2" />
-                Settings
+                Cài đặt
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 

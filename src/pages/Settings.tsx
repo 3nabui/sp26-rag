@@ -51,7 +51,7 @@ export default function SettingsPage() {
   const [securityAlerts, setSecurityAlerts] = useState(defaults.securityAlerts);
 
   return (
-    <DefaultLayout title="Settings" role={role}>
+    <DefaultLayout title="Cài đặt" role={role}>
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -65,15 +65,15 @@ export default function SettingsPage() {
               <div className="relative z-10 flex items-start justify-between gap-4">
                 <div>
                   <h1 className="font-serif text-3xl font-bold text-foreground mb-2">
-                    Settings
+                    Cài đặt
                   </h1>
                   <p className="text-muted-foreground">
-                    Customize StoryNest for your account.
+                    Tùy chỉnh StoryNest cho tài khoản của bạn.
                   </p>
                 </div>
                 <Button variant="outline" className="gap-2">
                   <Save className="w-4 h-4" />
-                  Save
+                  Lưu
                 </Button>
               </div>
             </CardContent>
@@ -85,23 +85,23 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="w-5 h-5 text-primary" />
-                Appearance
+                Giao diện
               </CardTitle>
-              <CardDescription>Theme and display</CardDescription>
+              <CardDescription>Chủ đề và hiển thị</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm">Theme</Label>
+                <Label className="text-sm">Chủ đề</Label>
                 <Select
                   value={activeTheme === 'system' ? 'light' : activeTheme}
                   onValueChange={(v) => setAppTheme(v)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select theme" />
+                    <SelectValue placeholder="Chọn chủ đề" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
+                    <SelectItem value="light">Sáng</SelectItem>
+                    <SelectItem value="dark">Tối</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -112,29 +112,29 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-accent" />
-                Notifications
+                Thông báo
               </CardTitle>
-              <CardDescription>Email notifications</CardDescription>
+              <CardDescription>Thông báo qua email</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Email notifications</p>
-                  <p className="text-xs text-muted-foreground">Receive notifications via email</p>
+                  <p className="text-sm font-medium text-foreground">Thông báo email</p>
+                  <p className="text-xs text-muted-foreground">Nhận thông báo qua email</p>
                 </div>
                 <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
               </div>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Product updates</p>
-                  <p className="text-xs text-muted-foreground">Feature updates and release notes</p>
+                  <p className="text-sm font-medium text-foreground">Cập nhật sản phẩm</p>
+                  <p className="text-xs text-muted-foreground">Cập nhật tính năng và ghi chú phát hành</p>
                 </div>
                 <Switch checked={productUpdates} onCheckedChange={setProductUpdates} />
               </div>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Security alerts</p>
-                  <p className="text-xs text-muted-foreground">Login and security alerts</p>
+                  <p className="text-sm font-medium text-foreground">Cảnh báo bảo mật</p>
+                  <p className="text-xs text-muted-foreground">Cảnh báo đăng nhập và bảo mật</p>
                 </div>
                 <Switch checked={securityAlerts} onCheckedChange={setSecurityAlerts} />
               </div>
@@ -147,21 +147,21 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-success" />
-                Privacy
+                Quyền riêng tư
               </CardTitle>
-              <CardDescription>Basic privacy options (demo)</CardDescription>
+              <CardDescription>Các tùy chọn quyền riêng tư cơ bản (demo)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Allow usage analytics</p>
-                  <p className="text-xs text-muted-foreground">Help improve the product with anonymous usage data</p>
+                  <p className="text-sm font-medium text-foreground">Cho phép thu thập thống kê sử dụng</p>
+                  <p className="text-xs text-muted-foreground">Giúp cải thiện sản phẩm với dữ liệu ẩn danh</p>
                 </div>
                 <Switch defaultChecked />
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Globe className="w-4 h-4" />
-                This is demo UI only and is not saved to a server yet.
+                Đây chỉ là giao diện demo, hiện chưa lưu dữ liệu lên server.
               </div>
             </CardContent>
           </Card>
