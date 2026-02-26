@@ -290,7 +290,7 @@ export default function ProfilePage() {
 
   if (!isAuthenticated || !user) {
     return (
-      <DefaultLayout title="Profile" role={role}>
+      <DefaultLayout title="Hồ sơ" role={role}>
         <div className="max-w-3xl mx-auto py-16 text-center space-y-4">
           <h1 className="font-serif text-3xl font-bold text-foreground">Bạn chưa đăng nhập</h1>
           <p className="text-muted-foreground">
@@ -303,7 +303,7 @@ export default function ProfilePage() {
 
   if (isLoading || !profileView) {
     return (
-      <DefaultLayout title="Profile" role={role}>
+      <DefaultLayout title="Hồ sơ" role={role}>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex items-center gap-3 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -315,7 +315,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <DefaultLayout title="Profile" role={role}>
+    <DefaultLayout title="Hồ sơ" role={role}>
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -347,21 +347,21 @@ export default function ProfilePage() {
                       {profileView.name}
                     </h1>
                     <p className="text-muted-foreground">
-                      Manage your account details.
+                      Quản lý thông tin tài khoản của bạn.
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mt-4">
                       <Badge variant="secondary" className="capitalize">
                         {profileView.role}
                       </Badge>
                       <Badge variant={profileView.isActive ? 'outline' : 'destructive'}>
-                        {profileView.isActive ? 'Active' : 'Inactive'}
+                        {profileView.isActive ? 'Đang hoạt động' : 'Ngưng hoạt động'}
                       </Badge>
-                      <Badge variant="outline">Joined {profileView.joinedAt}</Badge>
+                      <Badge variant="outline">Tham gia ngày {profileView.joinedAt}</Badge>
                     </div>
                     {(profileView.penName || (profileView.genres && profileView.genres.length > 0)) && (
                       <div className="flex flex-wrap items-center gap-2 mt-3">
                         {profileView.penName && (
-                          <Badge variant="outline">Pen name: {profileView.penName}</Badge>
+                          <Badge variant="outline">Bút danh: {profileView.penName}</Badge>
                         )}
                         {(profileView.genres || []).slice(0, 3).map((g) => (
                           <Badge key={g} variant="secondary">
@@ -383,7 +383,7 @@ export default function ProfilePage() {
                   onClick={handleOpenEdit}
                 >
                   <Pencil className="w-4 h-4" />
-                  Edit Profile
+                  Chỉnh sửa hồ sơ
                 </Button>
               </div>
             </CardContent>
@@ -395,13 +395,13 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="w-5 h-5 text-primary" />
-                Basic information
+                Thông tin cơ bản
               </CardTitle>
-              <CardDescription>Details shown in the app</CardDescription>
+              <CardDescription>Thông tin hiển thị trong ứng dụng</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Name</span>
+                <span className="text-sm text-muted-foreground">Họ và tên</span>
                 <span className="text-sm font-medium text-foreground">{profileView.name}</span>
               </div>
               <div className="flex items-center justify-between">
@@ -412,14 +412,14 @@ export default function ProfilePage() {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Role</span>
+                <span className="text-sm text-muted-foreground">Vai trò</span>
                 <span className="text-sm font-medium text-foreground capitalize flex items-center gap-2">
                   <Shield className="w-4 h-4 text-muted-foreground" />
                   {profileView.role}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Joined</span>
+                <span className="text-sm text-muted-foreground">Ngày tham gia</span>
                 <span className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   {profileView.joinedAt}
@@ -427,13 +427,13 @@ export default function ProfilePage() {
               </div>
               <div className="pt-2 border-t border-border/50 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Pen name</span>
+                  <span className="text-sm text-muted-foreground">Bút danh</span>
                   <span className="text-sm font-medium text-foreground">
                     {profileView.penName || '—'}
                   </span>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <span className="text-sm text-muted-foreground shrink-0">Genres</span>
+                  <span className="text-sm text-muted-foreground shrink-0">Thể loại / tag</span>
                   <div className="flex flex-wrap gap-2 justify-end">
                     {(profileView.genres || []).length === 0 ? (
                       <span className="text-sm font-medium text-foreground">—</span>
@@ -445,7 +445,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-sm text-muted-foreground">Bio</span>
+                  <span className="text-sm text-muted-foreground">Giới thiệu</span>
                   <p className="text-sm text-foreground">
                     {profileView.bio?.trim() ? profileView.bio : '—'}
                   </p>
@@ -456,7 +456,7 @@ export default function ProfilePage() {
 
           <Card variant="elevated">
             <CardHeader>
-              <CardTitle>Security</CardTitle>
+              <CardTitle>Bảo mật</CardTitle>
               <CardDescription>Quản lý bảo mật tài khoản</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -555,28 +555,28 @@ export default function ProfilePage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogTitle>Chỉnh sửa hồ sơ</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="profile_name">Name</Label>
+                <Label htmlFor="profile_name">Họ và tên</Label>
                 <Input
                   id="profile_name"
                   value={draftName}
                   onChange={(e) => setDraftName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder="Tên của bạn"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="profile_pen_name">Pen name</Label>
+                <Label htmlFor="profile_pen_name">Bút danh</Label>
                 <Input
                   id="profile_pen_name"
                   value={draftPenName}
                   onChange={(e) => setDraftPenName(e.target.value)}
-                  placeholder="e.g. A. Writer"
+                  placeholder="Ví dụ: A. Writer"
                 />
                 <p className="text-xs text-muted-foreground">
                   Optional. Chỉ dùng để hiển thị trong UI, không thay đổi nội dung bản thảo.
@@ -584,7 +584,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="profile_avatar">Avatar URL</Label>
+                <Label htmlFor="profile_avatar">Đường dẫn ảnh đại diện (URL)</Label>
                 <Input
                   id="profile_avatar"
                   type="url"
@@ -602,29 +602,29 @@ export default function ProfilePage() {
                   placeholder="https://..."
                 />
                 <p className="text-xs text-muted-foreground">
-                  Optional. Liên kết đến ảnh đại diện của bạn.
+                  Không bắt buộc. Liên kết đến ảnh đại diện của bạn.
                 </p>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile_genres">Genres / tags</Label>
+              <Label htmlFor="profile_genres">Thể loại / tag</Label>
               <Input
                 id="profile_genres"
                 value={genresInput}
                 onChange={(e) => setGenresInput(e.target.value)}
-                placeholder="e.g. Fantasy, Romance, Thriller"
+                placeholder="Ví dụ: Fantasy, Romance, Thriller"
               />
               <p className="text-xs text-muted-foreground">
                 Ngăn cách bằng dấu phẩy. Dùng để gợi ý và cung cấp thêm ngữ cảnh cho AI (metadata phía client).
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile_bio">Bio</Label>
+              <Label htmlFor="profile_bio">Giới thiệu</Label>
               <Textarea
                 id="profile_bio"
                 value={draftBio}
                 onChange={(e) => setDraftBio(e.target.value)}
-                placeholder="A short bio about you as an author..."
+                placeholder="Giới thiệu ngắn về bạn với tư cách tác giả..."
                 rows={4}
               />
             </div>
@@ -637,13 +637,13 @@ export default function ProfilePage() {
                   setEditOpen(false);
                 }}
               >
-                Cancel
+                Hủy
               </Button>
               <Button type="submit" variant="gradient" disabled={isSaving}>
                 {isSaving ? (
                   <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                 ) : (
-                  'Save'
+                  'Lưu'
                 )}
               </Button>
             </DialogFooter>

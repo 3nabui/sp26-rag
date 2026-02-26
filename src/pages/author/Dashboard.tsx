@@ -299,26 +299,6 @@ export default function AuthorDashboard() {
 
           {/* Right Sidebar */}
           <motion.div variants={itemVariants} className="space-y-6">
-            {/* Quick AI Query */}
-            <Card variant="interactive" className="gradient-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  Quick AI Query
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Đặt câu hỏi về tác phẩm của bạn và nhận phân tích tức thì.
-                </p>
-                <Button variant="gradient" className="w-full" asChild>
-                  <Link to="/author/chatbot">
-                    Bắt đầu Chat
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-
             {/* Writing Tips */}
             <Card variant="elevated">
               <CardHeader>
@@ -367,12 +347,7 @@ export default function AuthorDashboard() {
                       Phân tích AI
                     </Link>
                   </Button>
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <Link to="/author/chatbot">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Chat với AI
-                    </Link>
-                  </Button>
+                  {/* Đã loại bỏ nút Chat với AI khỏi Dashboard theo yêu cầu */}
                 </div>
               </CardContent>
             </Card>

@@ -21,6 +21,7 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptPolicy, setAcceptPolicy] = useState(false);
 
   const getRoleRoute = (role: string): string => {
     const roleMap: Record<string, string> = {
@@ -39,6 +40,11 @@ export default function Register() {
     try {
       if (!fullName || !email || !password || !confirmPassword) {
         setError('Vui lòng nhập đầy đủ thông tin');
+        return;
+      }
+
+      if (!acceptPolicy) {
+        setError('Bạn cần đồng ý với chính sách bảo mật trước khi đăng ký.');
         return;
       }
 
@@ -198,6 +204,29 @@ export default function Register() {
                     </button>
                   </div>
                 </div>
+
+              {/* Privacy Policy Consent */}
+              <div className="flex items-start gap-2 text-sm">
+                <input
+                  id="accept_policy"
+                  type="checkbox"
+                  className="mt-1"
+                  checked={acceptPolicy}
+                  onChange={(e) => setAcceptPolicy(e.target.checked)}
+                  disabled={isLoading}
+                />
+                <label htmlFor="accept_policy" className="text-foreground">
+                  Tôi đồng ý với{' '}
+                  <span className="font-medium text-primary">
+                    Chính sách bảo mật
+                  </span>
+                  {' '}và{' '}
+                  <span className="font-medium text-primary">
+                    Điều khoản sử dụng
+                  </span>
+                  {' '}của StoryNest.
+                </label>
+              </div>
 
                 {/* Submit */}
                 <Button
