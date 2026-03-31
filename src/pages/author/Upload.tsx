@@ -80,51 +80,51 @@ interface UploadingFile {
 const mockStories: Story[] = [
   {
     id: '1',
-    title: 'Bóng Tối Dưới Ánh Trăng',
+    title: 'Shadows Under the Moonlight',
     createdAt: '2024-12-15',
     updatedAt: '2024-12-25',
     chapters: [
       {
         id: '1-1',
-        title: 'Chương 1 - Khởi đầu',
+        title: 'Chapter 1 - The Beginning',
         order: 1,
         versions: [
-          { id: 'v1-1-1', version: 1, label: 'Draft', content: 'Nội dung chương 1 version 1...', createdAt: '2024-12-15', isMain: false },
-          { id: 'v1-1-2', version: 2, label: 'Revised', content: 'Nội dung chương 1 version 2...', createdAt: '2024-12-18', isMain: true },
+          { id: 'v1-1-1', version: 1, label: 'Draft', content: 'Chapter 1 content version 1...', createdAt: '2024-12-15', isMain: false },
+          { id: 'v1-1-2', version: 2, label: 'Revised', content: 'Chapter 1 content version 2...', createdAt: '2024-12-18', isMain: true },
         ]
       },
       {
         id: '1-2',
-        title: 'Chương 2 - Biến cố',
+        title: 'Chapter 2 - The Incident',
         order: 2,
         versions: [
-          { id: 'v1-2-1', version: 1, label: 'Draft', content: 'Nội dung chương 2 version 1...', createdAt: '2024-12-20', isMain: true },
+          { id: 'v1-2-1', version: 1, label: 'Draft', content: 'Chapter 2 content version 1...', createdAt: '2024-12-20', isMain: true },
         ]
       },
       {
         id: '1-3',
-        title: 'Chương 3 - Phát triển',
+        title: 'Chapter 3 - Development',
         order: 3,
         versions: [
-          { id: 'v1-3-1', version: 1, label: 'Draft', content: 'Nội dung chương 3 version 1...', createdAt: '2024-12-22', isMain: false },
-          { id: 'v1-3-2', version: 2, label: 'Revised', content: 'Nội dung chương 3 version 2...', createdAt: '2024-12-23', isMain: false },
-          { id: 'v1-3-3', version: 3, label: 'Final', content: 'Nội dung chương 3 version 3...', createdAt: '2024-12-25', isMain: true },
+          { id: 'v1-3-1', version: 1, label: 'Draft', content: 'Chapter 3 content version 1...', createdAt: '2024-12-22', isMain: false },
+          { id: 'v1-3-2', version: 2, label: 'Revised', content: 'Chapter 3 content version 2...', createdAt: '2024-12-23', isMain: false },
+          { id: 'v1-3-3', version: 3, label: 'Final', content: 'Chapter 3 content version 3...', createdAt: '2024-12-25', isMain: true },
         ]
       },
     ]
   },
   {
     id: '2',
-    title: 'Những Ngày Mưa Phương Nam',
+    title: 'Rainy Days in the South',
     createdAt: '2024-12-20',
     updatedAt: '2024-12-24',
     chapters: [
       {
         id: '2-1',
-        title: 'Chương 1 - Mở đầu',
+        title: 'Chapter 1 - Opening',
         order: 1,
         versions: [
-          { id: 'v2-1-1', version: 1, label: 'Draft', content: 'Nội dung chương 1...', createdAt: '2024-12-20', isMain: true },
+          { id: 'v2-1-1', version: 1, label: 'Draft', content: 'Chapter 1 content...', createdAt: '2024-12-20', isMain: true },
         ]
       },
     ]
@@ -455,7 +455,7 @@ function VersionManagerModal({
                   )}
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {new Date(version.createdAt).toLocaleDateString('vi-VN')}
+                  {new Date(version.createdAt).toLocaleDateString('en-US')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -995,6 +995,12 @@ export default function UploadPage() {
   // Create story dialog state
   const [createStoryDialogOpen, setCreateStoryDialogOpen] = useState(false);
 
+  // Option 2: Upload by chapter — select story + chapter
+  const [selectedStoryIdForUpload, setSelectedStoryIdForUpload] = useState<string | null>(null);
+  const [selectedChapterIdForUpload, setSelectedChapterIdForUpload] = useState<string | null>(null);
+  const [isDraggingOption2, setIsDraggingOption2] = useState(false);
+  const [uploadingChapterFile, setUploadingChapterFile] = useState<UploadingFile | null>(null);
+
   // Get selected chapter
   const selectedChapter = stories
     .flatMap(s => s.chapters)
@@ -1310,6 +1316,38 @@ export default function UploadPage() {
     }
   };
 
+  // Parse Word file as single chapter (entire file = 1 chapter, no splitting)
+  const parseWordFileAsSingleChapter = async (file: File): Promise<string> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      const html = result.value;
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const elements: string[] = [];
+      const processNode = (node: Node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const el = node as HTMLElement;
+          const tagName = el.tagName.toLowerCase();
+          if (tagName.match(/^h[1-6]$/) || tagName === 'p') {
+            const text = el.textContent?.trim() || '';
+            if (text) elements.push(text);
+          }
+          Array.from(el.childNodes).forEach(processNode);
+        }
+      };
+      Array.from(tempDiv.childNodes).forEach(processNode);
+      if (elements.length === 0) {
+        const text = tempDiv.textContent || tempDiv.innerText || '';
+        return text.split(/\n\s*\n/).filter(p => p.trim()).join('\n\n');
+      }
+      return elements.join('\n\n');
+    } catch (error) {
+      console.error('Error parsing Word file as single chapter:', error);
+      throw error;
+    }
+  };
+
   const handleFiles = async (files: File[]) => {
     const newFiles: UploadingFile[] = files.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
@@ -1351,7 +1389,7 @@ export default function UploadPage() {
         setUploadingFiles(prev => 
           prev.map(f => f.id === fileId ? { ...f, progress: 100, status: 'error' } : f)
         );
-        alert(`Lỗi khi xử lý file ${file.name}`);
+        alert(`Error processing file ${file.name}`);
       }
     }
   };
@@ -1488,7 +1526,7 @@ export default function UploadPage() {
       setUploadingFiles(prev => 
         prev.map(f => f.id === fileId ? { ...f, progress: 100, status: 'error' } : f)
       );
-      alert(`Lỗi khi xử lý file ${file.name}`);
+      alert(`Error processing file ${file.name}`);
     }
   };
 
@@ -1505,6 +1543,92 @@ export default function UploadPage() {
 
   const removeUploadingFile = (id: string) => {
     setUploadingFiles(prev => prev.filter(f => f.id !== id));
+  };
+
+  // Option 1: Upload 1 full story file only (.docx/.doc)
+  const handleFullStoryFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    const wordFiles = files.filter(f => /\.(docx|doc)$/i.test(f.name));
+    if (wordFiles.length > 0) handleFiles(wordFiles.slice(0, 1));
+    e.target.value = '';
+  };
+
+  const handleFullStoryDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files).filter(f => /\.(docx|doc)$/i.test(f.name));
+    if (files.length > 0) handleFiles(files.slice(0, 1));
+  };
+
+  // Option 2: Upload Word file for selected chapter
+  const handleChapterFileUpload = async (file: File) => {
+    if (!selectedStoryIdForUpload || !selectedChapterIdForUpload) {
+      alert('Please select a story and chapter before uploading.');
+      return;
+    }
+    if (!/\.(docx|doc)$/i.test(file.name)) {
+      alert('Only Word files (.docx, .doc) are supported.');
+      return;
+    }
+    const fileId = Math.random().toString(36).substr(2, 9);
+    setUploadingChapterFile({
+      id: fileId,
+      name: file.name,
+      size: file.size,
+      progress: 0,
+      status: 'uploading'
+    });
+    const progressInterval = setInterval(() => {
+      setUploadingChapterFile(prev => prev ? { ...prev, progress: Math.min((prev.progress || 0) + 10, 90) } : null);
+    }, 150);
+    try {
+      const content = await parseWordFileAsSingleChapter(file);
+      clearInterval(progressInterval);
+      setUploadingChapterFile(prev => prev ? { ...prev, progress: 100, status: 'success' } : null);
+      const newStories = stories.map(story => {
+        if (story.id !== selectedStoryIdForUpload) return story;
+        return {
+          ...story,
+          chapters: story.chapters.map(chapter => {
+            if (chapter.id !== selectedChapterIdForUpload) return chapter;
+            const newVersion: Version = {
+              id: `${Date.now()}-v`,
+              version: chapter.versions.length + 1,
+              label: 'Imported',
+              content,
+              createdAt: new Date().toISOString(),
+              isMain: chapter.versions.length === 0
+            };
+            return {
+              ...chapter,
+              versions: [...chapter.versions, newVersion]
+            };
+          }),
+          updatedAt: new Date().toISOString()
+        };
+      });
+      saveStories(newStories);
+      alert('Chapter content imported successfully.');
+      setTimeout(() => setUploadingChapterFile(null), 2000);
+    } catch (error) {
+      clearInterval(progressInterval);
+      setUploadingChapterFile(prev => prev ? { ...prev, progress: 100, status: 'error' } : null);
+      alert(`Error processing file ${file.name}`);
+      setTimeout(() => setUploadingChapterFile(null), 2000);
+    }
+  };
+
+  const handleChapterFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length > 0) handleChapterFileUpload(files[0]);
+    e.target.value = '';
+  };
+
+  const handleChapterDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOption2(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) handleChapterFileUpload(files[0]);
   };
 
   // Delete story handler
@@ -1969,91 +2093,154 @@ export default function UploadPage() {
 
         {mode === 'upload' ? (
           <>
-            {/* Upload Zone */}
+            {/* Import Story — 2 khung cho 2 option */}
             <Card variant="elevated">
               <CardHeader>
                 <CardTitle>Import Story</CardTitle>
                 <CardDescription>
-                  Supported formats: TXT, DOCX, PDF (Max 50MB)
+                  Choose one of two options: upload full story (auto-detect chapters) or upload by chapter.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`
-                    relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300
-                    ${isDragging 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-border hover:border-primary/50 hover:bg-secondary/30'
-                    }
-                  `}
-                >
-                  <input
-                    type="file"
-                    accept=".txt,.docx,.pdf"
-                    multiple
-                    onChange={handleFileInput}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div className="flex flex-col items-center gap-4">
-                    <div className={`
-                      w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300
-                      ${isDragging ? 'bg-primary text-primary-foreground scale-110' : 'bg-secondary text-muted-foreground'}
-                    `}>
-                      <UploadIcon className="w-8 h-8" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Option 1: Upload full story — 1 Word file, auto-detect chapters */}
+                  <div className="border border-border rounded-xl p-4 flex flex-col">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FilePlus className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold text-foreground">Option 1: Upload full story</h3>
                     </div>
-                    <div>
-                      <p className="text-lg font-medium text-foreground mb-1">
-                        Drag and drop files here
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        or <span className="text-primary font-medium">click to select files</span>
-                      </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Upload 1 Word file (.docx, .doc) containing the full story. The system will auto-detect and split into chapters.
+                    </p>
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleFullStoryDrop}
+                      className={`
+                        relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 flex-1 flex flex-col justify-center
+                        ${isDragging 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-border hover:border-primary/50 hover:bg-secondary/30'
+                        }
+                      `}
+                    >
+                      <input
+                        type="file"
+                        accept=".docx,.doc"
+                        onChange={handleFullStoryFileInput}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <UploadIcon className={`w-10 h-10 mx-auto mb-2 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <p className="text-sm font-medium text-foreground">Drop Word file here</p>
+                      <p className="text-xs text-muted-foreground mt-1">or click to select file</p>
                     </div>
+                    {uploadingFiles.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {uploadingFiles.map(file => (
+                          <motion.div
+                            key={file.id}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="flex items-center gap-3 p-2 rounded-lg bg-secondary/30 text-sm"
+                          >
+                            <FileText className="w-4 h-4 text-primary shrink-0" />
+                            <span className="truncate flex-1">{file.name}</span>
+                            <Progress value={file.progress} className="w-16 h-1.5" />
+                            {file.status === 'success' ? (
+                              <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                            ) : (
+                              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => removeUploadingFile(file.id)}>
+                                <X className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                {/* Uploading Files */}
-                {uploadingFiles.length > 0 && (
-                  <div className="mt-6 space-y-3">
-                    <p className="text-sm font-medium text-muted-foreground">Uploading</p>
-                    {uploadingFiles.map(file => (
+                  {/* Option 2: Upload by chapter — select story + chapter, upload 1 Word file for that chapter */}
+                  <div className="border border-border rounded-xl p-4 flex flex-col">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FolderOpen className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold text-foreground">Option 2: Upload by chapter</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Create story and chapters first (in Editor), then select story and chapter below and upload 1 Word file for that chapter.
+                    </p>
+                    <div className="space-y-3 mb-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Story</Label>
+                        <Select value={selectedStoryIdForUpload ?? ''} onValueChange={(v) => { setSelectedStoryIdForUpload(v || null); setSelectedChapterIdForUpload(null); }}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select story..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {stories.map(s => (
+                              <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Chapter</Label>
+                        <Select 
+                          value={selectedChapterIdForUpload ?? ''} 
+                          onValueChange={(v) => setSelectedChapterIdForUpload(v || null)}
+                          disabled={!selectedStoryIdForUpload}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select chapter..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(stories.find(s => s.id === selectedStoryIdForUpload)?.chapters ?? []).map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDraggingOption2(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setIsDraggingOption2(false); }}
+                      onDrop={handleChapterDrop}
+                      className={`
+                        relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 flex-1 flex flex-col justify-center
+                        ${!selectedChapterIdForUpload ? 'opacity-60 pointer-events-none' : ''}
+                        ${isDraggingOption2 ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-secondary/30'}
+                      `}
+                    >
+                      <input
+                        type="file"
+                        accept=".docx,.doc"
+                        onChange={handleChapterFileInput}
+                        disabled={!selectedChapterIdForUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                      />
+                      <UploadIcon className={`w-10 h-10 mx-auto mb-2 ${isDraggingOption2 ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <p className="text-sm font-medium text-foreground">
+                        {selectedChapterIdForUpload ? 'Drop Word file here' : 'Select story and chapter first'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">1 Word file = 1 chapter content</p>
+                    </div>
+                    {uploadingChapterFile && (
                       <motion.div
-                        key={file.id}
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="flex items-center gap-4 p-4 rounded-lg bg-secondary/30"
+                        className="mt-3 flex items-center gap-3 p-2 rounded-lg bg-secondary/30 text-sm"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Progress value={file.progress} className="flex-1 h-1" />
-                            <span className="text-xs text-muted-foreground w-12 text-right">
-                              {Math.round(file.progress)}%
-                            </span>
-                          </div>
-                        </div>
-                        {file.status === 'success' ? (
-                          <CheckCircle2 className="w-5 h-5 text-success" />
-                        ) : (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => removeUploadingFile(file.id)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
+                        <FileText className="w-4 h-4 text-primary shrink-0" />
+                        <span className="truncate flex-1">{uploadingChapterFile.name}</span>
+                        <Progress value={uploadingChapterFile.progress} className="w-16 h-1.5" />
+                        {uploadingChapterFile.status === 'success' ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                        ) : uploadingChapterFile.status === 'error' ? (
+                          <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
+                        ) : null}
                       </motion.div>
-                    ))}
+                    )}
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
 
@@ -2084,7 +2271,7 @@ export default function UploadPage() {
                           <div>
                             <p className="font-medium text-foreground">{story.title}</p>
                             <p className="text-xs text-muted-foreground">
-                              {story.chapters.length} chapter • Updated: {new Date(story.updatedAt).toLocaleDateString('vi-VN')}
+                              {story.chapters.length} chapter • Updated: {new Date(story.updatedAt).toLocaleDateString('en-US')}
                             </p>
                           </div>
                         </div>
